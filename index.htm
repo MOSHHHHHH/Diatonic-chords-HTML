@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>אקורדים דיאטוניים</title>
+<style>
+  :root {
+    --bg: #080810;
+    --surface: #10101a;
+    --surface2: #181826;
+    --border: rgba(255,255,255,0.06);
+    --gold: #c9a84c;
+    --gold2: #f0d080;
+    --gold-glow: rgba(201,168,76,0.15);
+    --blue: #7a9cc8;
+    --blue2: #a8c4e4;
+    --blue-glow: rgba(122,156,200,0.15);
+    --text: #e8e0d0;
+    --text-muted: #5a5448;
+    --radius: 8px;
+    --tr: 0.28s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', 'Courier New', monospace;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 40% at 50% -5%, var(--accent-glow, var(--gold-glow)) 0%, transparent 60%);
+    transition: background 0.6s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body.minor-mode::before { --accent-glow: var(--blue-glow); }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  /* ── Header ── */
+  header {
+    text-align: center;
+    margin-bottom: 36px;
+    animation: fadeDown 0.7s ease both;
+  }
+
+  h1 {
+    font-size: clamp(1.8rem, 5vw, 3.2rem);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--gold2) 0%, var(--gold) 55%, #a0783a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-family: Georgia, 'Times New Roman', serif;
+    transition: background 0.5s ease;
+  }
+
+  body.minor-mode h1 {
+    background: linear-gradient(135deg, var(--blue2) 0%, var(--blue) 55%, #4a6a9a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  header p { color: var(--text-muted); font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; margin-top: 8px; }
+
+  /* ── Mode Toggle ── */
+  .toggle-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 32px;
+    animation: fadeDown 0.7s 0.1s ease both;
+  }
+
+  .mode-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 100px;
+    padding: 10px 24px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.8rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text);
+    transition: border-color var(--tr), box-shadow var(--tr);
+  }
+
+  .mode-toggle-btn:hover {
+    border-color: rgba(255,255,255,0.18);
+    box-shadow: 0 0 20px rgba(255,255,255,0.04);
+  }
+
+  .toggle-track {
+    width: 44px;
+    height: 24px;
+    border-radius: 100px;
+    background: var(--surface2);
+    border: 1px solid rgba(255,255,255,0.1);
+    position: relative;
+    transition: background 0.4s ease, box-shadow 0.4s ease;
+    flex-shrink: 0;
+  }
+
+  .toggle-track.minor {
+    background: color-mix(in srgb, var(--blue) 20%, var(--surface2));
+    box-shadow: 0 0 12px var(--blue-glow);
+    border-color: var(--blue);
+  }
+
+  .toggle-thumb {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--gold);
+    position: absolute;
+    top: 3px; left: 3px;
+    transition: left 0.35s cubic-bezier(0.34,1.56,0.64,1), background 0.4s ease, box-shadow 0.4s ease;
+    box-shadow: 0 0 8px var(--gold-glow);
+  }
+
+  .toggle-track.minor .toggle-thumb {
+    left: 21px;
+    background: var(--blue);
+    box-shadow: 0 0 8px var(--blue-glow);
+  }
+
+  .toggle-label-major { transition: color var(--tr), opacity var(--tr); }
+  .toggle-label-minor { transition: color var(--tr), opacity var(--tr); }
+
+  .mode-toggle-btn[data-mode="major"] .toggle-label-major { color: var(--gold); font-weight: 700; }
+  .mode-toggle-btn[data-mode="major"] .toggle-label-minor { opacity: 0.35; }
+  .mode-toggle-btn[data-mode="minor"] .toggle-label-minor { color: var(--blue); font-weight: 700; }
+  .mode-toggle-btn[data-mode="minor"] .toggle-label-major { opacity: 0.35; }
+
+  /* ── Table ── */
+  .table-scroll {
+    overflow-x: auto;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    animation: fadeUp 0.7s 0.2s ease both;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+  }
+
+  /* Header row */
+  thead th {
+    padding: 14px 10px;
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    z-index: 10;
+  }
+
+  thead th:first-child {
+    text-align: right;
+    padding-right: 20px;
+    color: var(--accent, var(--gold));
+    min-width: 64px;
+  }
+
+  thead th.deg-header {
+    text-align: center;
+    min-width: 110px;
+  }
+
+  .deg-roman {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    font-family: Georgia, serif;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .deg-type {
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    opacity: 0.5;
+  }
+
+  /* Body rows */
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background var(--tr);
+    animation: rowIn 0.5s calc(var(--ri, 0) * 0.04s) ease both;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,0.025); }
+
+  /* Key label cell */
+  td.key-cell {
+    padding: 0 16px 0 20px;
+    text-align: right;
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: Georgia, serif;
+    color: var(--accent, var(--gold));
+    white-space: nowrap;
+    position: sticky;
+    left: 0;
+    background: var(--surface);
+    z-index: 5;
+    border-right: 1px solid var(--border);
+  }
+
+  body.minor-mode td.key-cell { --accent: var(--blue); }
+  body.minor-mode thead th:first-child { --accent: var(--blue); }
+
+  /* Chord cells */
+  td.chord-cell {
+    padding: 8px 6px;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .chord-btn {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    width: 100%;
+    padding: 10px 6px;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: var(--radius);
+    background: var(--surface2);
+    cursor: pointer;
+    transition: var(--tr);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .chord-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--cb-glow, transparent);
+    opacity: 0;
+    transition: opacity var(--tr);
+    border-radius: inherit;
+  }
+
+  .chord-btn:hover::before,
+  .chord-btn.active::before { opacity: 1; }
+
+  /* Type-based colors */
+  .chord-btn[data-type="major"]      { --cb-border: #c9a84c; --cb-glow: radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.22), transparent 70%); --cb-text: #f0d080; }
+  .chord-btn[data-type="minor"]      { --cb-border: #7a9cc8; --cb-glow: radial-gradient(ellipse at 50% 0%, rgba(122,156,200,0.22), transparent 70%); --cb-text: #a8c4e4; }
+  .chord-btn[data-type="diminished"] { --cb-border: #c06060; --cb-glow: radial-gradient(ellipse at 50% 0%, rgba(192,96,96,0.22), transparent 70%);  --cb-text: #e09090; }
+  .chord-btn[data-type="dominant"]   { --cb-border: #72b87a; --cb-glow: radial-gradient(ellipse at 50% 0%, rgba(114,184,122,0.22), transparent 70%); --cb-text: #a0d8a8; }
+
+  .chord-btn:hover {
+    border-color: var(--cb-border);
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 0 1px var(--cb-border);
+    z-index: 3;
+  }
+
+  .chord-btn.active {
+    border-color: var(--cb-border);
+    transform: translateY(-3px) scale(1.06);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.5), 0 0 0 1px var(--cb-border), 0 0 16px color-mix(in srgb, var(--cb-border) 35%, transparent);
+    z-index: 4;
+  }
+
+  .cb-name {
+    position: relative;
+    z-index: 1;
+    font-family: Georgia, serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--cb-text);
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+
+
+
+  /* Ripple */
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    transform: scale(0);
+    animation: rippleAnim 0.5s linear;
+    pointer-events: none;
+  }
+
+  /* ── Detail panel ── */
+  .detail-panel {
+    margin-top: 24px;
+    min-height: 100px;
+    animation: fadeUp 0.7s 0.3s ease both;
+  }
+
+  .detail-card {
+    background: var(--surface2);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34,1.4,0.64,1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .detail-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--dp-accent, var(--gold)), transparent);
+    transition: background 0.3s;
+  }
+
+  .detail-card.visible { opacity: 1; transform: translateY(0); }
+
+  .dp-info { min-width: 160px; }
+  .dp-label { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+  .dp-chord { font-family: Georgia, serif; font-size: 1.4rem; font-weight: 700; color: var(--dp-accent, var(--gold2)); }
+  .dp-key   { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; letter-spacing: 0.08em; }
+  .dp-degree { font-size: 0.72rem; color: var(--text-muted); }
+
+  .dp-divider { width: 1px; height: 48px; background: var(--border); flex-shrink: 0; }
+
+  .dp-notes { display: flex; gap: 10px; flex-wrap: wrap; flex: 1; }
+
+  .note-pill {
+    border: 1px solid var(--dp-accent, var(--gold));
+    color: var(--dp-accent, var(--gold2));
+    border-radius: 100px;
+    padding: 7px 20px;
+    font-family: Georgia, serif;
+    font-size: 1rem;
+    font-weight: 700;
+    background: color-mix(in srgb, var(--dp-accent, var(--gold)) 8%, transparent);
+    opacity: 0;
+    transform: scale(0.7) translateY(8px);
+  }
+
+  .note-pill.show {
+    animation: pillPop 0.38s calc(var(--ni, 0) * 0.07s) cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+
+
+
+  /* ── Legend ── */
+  .legend {
+    display: flex; gap: 18px; justify-content: center; flex-wrap: wrap;
+    margin-bottom: 18px;
+    animation: fadeDown 0.7s 0.15s ease both;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.68rem; color: var(--text-muted); letter-spacing: 0.06em; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* ── Animations ── */
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeUp   { from { opacity:0; transform:translateY(16px);  } to { opacity:1; transform:translateY(0); } }
+  @keyframes rowIn    { from { opacity:0; transform:translateX(10px);  } to { opacity:1; transform:translateX(0); } }
+  @keyframes rippleAnim { to { transform:scale(5); opacity:0; } }
+  @keyframes pillPop  { from { opacity:0; transform:scale(0.7) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
+
+  ::-webkit-scrollbar { width:4px; height:4px; }
+  ::-webkit-scrollbar-thumb { background:rgba(201,168,76,0.25); border-radius:4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <h1>אקורדים דיאטוניים</h1>
+    <p>Diatonic Chord Reference — All Keys</p>
+  </header>
+
+  <div class="toggle-wrap">
+    <button class="mode-toggle-btn" id="modeToggle" data-mode="major">
+      <span class="toggle-label-major">Major</span>
+      <div class="toggle-track" id="toggleTrack"><div class="toggle-thumb"></div></div>
+      <span class="toggle-label-minor">Minor</span>
+    </button>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#c9a84c"></div>Major</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7a9cc8"></div>Minor</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#c06060"></div>Diminished</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#72b87a"></div>Dominant 7th</div>
+  </div>
+
+  <div class="table-scroll" id="tableScroll"></div>
+
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-card" id="detailCard">
+      <div class="dp-info">
+        <div class="dp-label">אקורד</div>
+        <div class="dp-chord" id="dpChord">—</div>
+        <div class="dp-key" id="dpKey"></div>
+        <div class="dp-degree" id="dpDegree"></div>
+      </div>
+      <div class="dp-divider"></div>
+      <div>
+        <div class="dp-label">תווים</div>
+        <div class="dp-notes" id="dpNotes"></div>
+      </div>
+    </div>
+  </div>
+
+
+
+</div>
+
+<script>
+const DATA = {"scales":{"major":[{"key":"C","chords":[{"degree":"I","name":"C major","notes":["C","E","G"]},{"degree":"ii","name":"D minor","notes":["D","F","A"]},{"degree":"iii","name":"E minor","notes":["E","G","B"]},{"degree":"IV","name":"F major","notes":["F","A","C"]},{"degree":"V7","name":"G dominant 7th","notes":["G","B","D","F"]},{"degree":"vi","name":"A minor","notes":["A","C","E"]},{"degree":"vii°","name":"B diminished","notes":["B","D","F"]}]},{"key":"G","chords":[{"degree":"I","name":"G major","notes":["G","B","D"]},{"degree":"ii","name":"A minor","notes":["A","C","E"]},{"degree":"iii","name":"B minor","notes":["B","D","F#"]},{"degree":"IV","name":"C major","notes":["C","E","G"]},{"degree":"V7","name":"D dominant 7th","notes":["D","F#","A","C"]},{"degree":"vi","name":"E minor","notes":["E","G","B"]},{"degree":"vii°","name":"F# diminished","notes":["F#","A","C"]}]},{"key":"D","chords":[{"degree":"I","name":"D major","notes":["D","F#","A"]},{"degree":"ii","name":"E minor","notes":["E","G","B"]},{"degree":"iii","name":"F# minor","notes":["F#","A","C#"]},{"degree":"IV","name":"G major","notes":["G","B","D"]},{"degree":"V7","name":"A dominant 7th","notes":["A","C#","E","G"]},{"degree":"vi","name":"B minor","notes":["B","D","F#"]},{"degree":"vii°","name":"C# diminished","notes":["C#","E","G"]}]},{"key":"A","chords":[{"degree":"I","name":"A major","notes":["A","C#","E"]},{"degree":"ii","name":"B minor","notes":["B","D","F#"]},{"degree":"iii","name":"C# minor","notes":["C#","E","G#"]},{"degree":"IV","name":"D major","notes":["D","F#","A"]},{"degree":"V7","name":"E dominant 7th","notes":["E","G#","B","D"]},{"degree":"vi","name":"F# minor","notes":["F#","A","C#"]},{"degree":"vii°","name":"G# diminished","notes":["G#","B","D"]}]},{"key":"E","chords":[{"degree":"I","name":"E major","notes":["E","G#","B"]},{"degree":"ii","name":"F# minor","notes":["F#","A","C#"]},{"degree":"iii","name":"G# minor","notes":["G#","B","D#"]},{"degree":"IV","name":"A major","notes":["A","C#","E"]},{"degree":"V7","name":"B dominant 7th","notes":["B","D#","F#","A"]},{"degree":"vi","name":"C# minor","notes":["C#","E","G#"]},{"degree":"vii°","name":"D# diminished","notes":["D#","F#","A"]}]},{"key":"B","chords":[{"degree":"I","name":"B major","notes":["B","D#","F#"]},{"degree":"ii","name":"C# minor","notes":["C#","E","G#"]},{"degree":"iii","name":"D# minor","notes":["D#","F#","A#"]},{"degree":"IV","name":"E major","notes":["E","G#","B"]},{"degree":"V7","name":"F# dominant 7th","notes":["F#","A#","C#","E"]},{"degree":"vi","name":"G# minor","notes":["G#","B","D#"]},{"degree":"vii°","name":"A# diminished","notes":["A#","C#","E"]}]},{"key":"F#","chords":[{"degree":"I","name":"F# major","notes":["F#","A#","C#"]},{"degree":"ii","name":"G# minor","notes":["G#","B","D#"]},{"degree":"iii","name":"A# minor","notes":["A#","C#","E#"]},{"degree":"IV","name":"B major","notes":["B","D#","F#"]},{"degree":"V7","name":"C# dominant 7th","notes":["C#","E#","G#","B"]},{"degree":"vi","name":"D# minor","notes":["D#","F#","A#"]},{"degree":"vii°","name":"E# diminished","notes":["E#","G#","B"]}]},{"key":"Gb","chords":[{"degree":"I","name":"Gb major","notes":["Gb","Bb","Db"]},{"degree":"ii","name":"Ab minor","notes":["Ab","Cb","Eb"]},{"degree":"iii","name":"Bb minor","notes":["Bb","Db","F"]},{"degree":"IV","name":"Cb major","notes":["Cb","Eb","Gb"]},{"degree":"V7","name":"Db dominant 7th","notes":["Db","F","Ab","Cb"]},{"degree":"vi","name":"Eb minor","notes":["Eb","Gb","Bb"]},{"degree":"vii°","name":"F diminished","notes":["F","Ab","Cb"]}]},{"key":"Db","chords":[{"degree":"I","name":"Db major","notes":["Db","F","Ab"]},{"degree":"ii","name":"Eb minor","notes":["Eb","Gb","Bb"]},{"degree":"iii","name":"F minor","notes":["F","Ab","C"]},{"degree":"IV","name":"Gb major","notes":["Gb","Bb","Db"]},{"degree":"V7","name":"Ab dominant 7th","notes":["Ab","C","Eb","Gb"]},{"degree":"vi","name":"Bb minor","notes":["Bb","Db","F"]},{"degree":"vii°","name":"C diminished","notes":["C","Eb","Gb"]}]},{"key":"Ab","chords":[{"degree":"I","name":"Ab major","notes":["Ab","C","Eb"]},{"degree":"ii","name":"Bb minor","notes":["Bb","Db","F"]},{"degree":"iii","name":"C minor","notes":["C","Eb","G"]},{"degree":"IV","name":"Db major","notes":["Db","F","Ab"]},{"degree":"V7","name":"Eb dominant 7th","notes":["Eb","G","Bb","Db"]},{"degree":"vi","name":"F minor","notes":["F","Ab","C"]},{"degree":"vii°","name":"G diminished","notes":["G","Bb","Db"]}]},{"key":"Eb","chords":[{"degree":"I","name":"Eb major","notes":["Eb","G","Bb"]},{"degree":"ii","name":"F minor","notes":["F","Ab","C"]},{"degree":"iii","name":"G minor","notes":["G","Bb","D"]},{"degree":"IV","name":"Ab major","notes":["Ab","C","Eb"]},{"degree":"V7","name":"Bb dominant 7th","notes":["Bb","D","F","Ab"]},{"degree":"vi","name":"C minor","notes":["C","Eb","G"]},{"degree":"vii°","name":"D diminished","notes":["D","F","Ab"]}]},{"key":"Bb","chords":[{"degree":"I","name":"Bb major","notes":["Bb","D","F"]},{"degree":"ii","name":"C minor","notes":["C","Eb","G"]},{"degree":"iii","name":"D minor","notes":["D","F","A"]},{"degree":"IV","name":"Eb major","notes":["Eb","G","Bb"]},{"degree":"V7","name":"F dominant 7th","notes":["F","A","C","Eb"]},{"degree":"vi","name":"G minor","notes":["G","Bb","D"]},{"degree":"vii°","name":"A diminished","notes":["A","C","Eb"]}]},{"key":"F","chords":[{"degree":"I","name":"F major","notes":["F","A","C"]},{"degree":"ii","name":"G minor","notes":["G","Bb","D"]},{"degree":"iii","name":"A minor","notes":["A","C","E"]},{"degree":"IV","name":"Bb major","notes":["Bb","D","F"]},{"degree":"V7","name":"C dominant 7th","notes":["C","E","G","Bb"]},{"degree":"vi","name":"D minor","notes":["D","F","A"]},{"degree":"vii°","name":"E diminished","notes":["E","G","Bb"]}]}],"minor":[{"key":"Am","chords":[{"degree":"i","name":"A minor","notes":["A","C","E"]},{"degree":"ii°","name":"B diminished","notes":["B","D","F"]},{"degree":"III","name":"C major","notes":["C","E","G"]},{"degree":"iv","name":"D minor","notes":["D","F","A"]},{"degree":"V7","name":"E dominant 7th","notes":["E","G#","B","D"]},{"degree":"VI","name":"F major","notes":["F","A","C"]},{"degree":"VII","name":"G major","notes":["G","B","D"]}]},{"key":"Em","chords":[{"degree":"i","name":"E minor","notes":["E","G","B"]},{"degree":"ii°","name":"F# diminished","notes":["F#","A","C"]},{"degree":"III","name":"G major","notes":["G","B","D"]},{"degree":"iv","name":"A minor","notes":["A","C","E"]},{"degree":"V7","name":"B dominant 7th","notes":["B","D#","F#","A"]},{"degree":"VI","name":"C major","notes":["C","E","G"]},{"degree":"VII","name":"D major","notes":["D","F#","A"]}]},{"key":"Bm","chords":[{"degree":"i","name":"B minor","notes":["B","D","F#"]},{"degree":"ii°","name":"C# diminished","notes":["C#","E","G"]},{"degree":"III","name":"D major","notes":["D","F#","A"]},{"degree":"iv","name":"E minor","notes":["E","G","B"]},{"degree":"V7","name":"F# dominant 7th","notes":["F#","A#","C#","E"]},{"degree":"VI","name":"G major","notes":["G","B","D"]},{"degree":"VII","name":"A major","notes":["A","C#","E"]}]},{"key":"F#m","chords":[{"degree":"i","name":"F# minor","notes":["F#","A","C#"]},{"degree":"ii°","name":"G# diminished","notes":["G#","B","D"]},{"degree":"III","name":"A major","notes":["A","C#","E"]},{"degree":"iv","name":"B minor","notes":["B","D","F#"]},{"degree":"V7","name":"C# dominant 7th","notes":["C#","E#","G#","B"]},{"degree":"VI","name":"D major","notes":["D","F#","A"]},{"degree":"VII","name":"E major","notes":["E","G#","B"]}]},{"key":"C#m","chords":[{"degree":"i","name":"C# minor","notes":["C#","E","G#"]},{"degree":"ii°","name":"D# diminished","notes":["D#","F#","A"]},{"degree":"III","name":"E major","notes":["E","G#","B"]},{"degree":"iv","name":"F# minor","notes":["F#","A","C#"]},{"degree":"V7","name":"G# dominant 7th","notes":["G#","B#","D#","F#"]},{"degree":"VI","name":"A major","notes":["A","C#","E"]},{"degree":"VII","name":"B major","notes":["B","D#","F#"]}]},{"key":"G#m","chords":[{"degree":"i","name":"G# minor","notes":["G#","B","D#"]},{"degree":"ii°","name":"A# diminished","notes":["A#","C#","E"]},{"degree":"III","name":"B major","notes":["B","D#","F#"]},{"degree":"iv","name":"C# minor","notes":["C#","E","G#"]},{"degree":"V7","name":"D# dominant 7th","notes":["D#","F##","A#","C#"]},{"degree":"VI","name":"E major","notes":["E","G#","B"]},{"degree":"VII","name":"F# major","notes":["F#","A#","C#"]}]},{"key":"Dm","chords":[{"degree":"i","name":"D minor","notes":["D","F","A"]},{"degree":"ii°","name":"E diminished","notes":["E","G","Bb"]},{"degree":"III","name":"F major","notes":["F","A","C"]},{"degree":"iv","name":"G minor","notes":["G","Bb","D"]},{"degree":"V7","name":"A dominant 7th","notes":["A","C#","E","G"]},{"degree":"VI","name":"Bb major","notes":["Bb","D","F"]},{"degree":"VII","name":"C major","notes":["C","E","G"]}]},{"key":"Gm","chords":[{"degree":"i","name":"G minor","notes":["G","Bb","D"]},{"degree":"ii°","name":"A diminished","notes":["A","C","Eb"]},{"degree":"III","name":"Bb major","notes":["Bb","D","F"]},{"degree":"iv","name":"C minor","notes":["C","Eb","G"]},{"degree":"V7","name":"D dominant 7th","notes":["D","F#","A","C"]},{"degree":"VI","name":"Eb major","notes":["Eb","G","Bb"]},{"degree":"VII","name":"F major","notes":["F","A","C"]}]},{"key":"Cm","chords":[{"degree":"i","name":"C minor","notes":["C","Eb","G"]},{"degree":"ii°","name":"D diminished","notes":["D","F","Ab"]},{"degree":"III","name":"Eb major","notes":["Eb","G","Bb"]},{"degree":"iv","name":"F minor","notes":["F","Ab","C"]},{"degree":"V7","name":"G dominant 7th","notes":["G","B","D","F"]},{"degree":"VI","name":"Ab major","notes":["Ab","C","Eb"]},{"degree":"VII","name":"Bb major","notes":["Bb","D","F"]}]},{"key":"Fm","chords":[{"degree":"i","name":"F minor","notes":["F","Ab","C"]},{"degree":"ii°","name":"G diminished","notes":["G","Bb","Db"]},{"degree":"III","name":"Ab major","notes":["Ab","C","Eb"]},{"degree":"iv","name":"Bb minor","notes":["Bb","Db","F"]},{"degree":"V7","name":"C dominant 7th","notes":["C","E","G","Bb"]},{"degree":"VI","name":"Db major","notes":["Db","F","Ab"]},{"degree":"VII","name":"Eb major","notes":["Eb","G","Bb"]}]},{"key":"Bbm","chords":[{"degree":"i","name":"Bb minor","notes":["Bb","Db","F"]},{"degree":"ii°","name":"C diminished","notes":["C","Eb","Gb"]},{"degree":"III","name":"Db major","notes":["Db","F","Ab"]},{"degree":"iv","name":"Eb minor","notes":["Eb","Gb","Bb"]},{"degree":"V7","name":"F dominant 7th","notes":["F","A","C","Eb"]},{"degree":"VI","name":"Gb major","notes":["Gb","Bb","Db"]},{"degree":"VII","name":"Ab major","notes":["Ab","C","Eb"]}]},{"key":"Ebm","chords":[{"degree":"i","name":"Eb minor","notes":["Eb","Gb","Bb"]},{"degree":"ii°","name":"F diminished","notes":["F","Ab","Cb"]},{"degree":"III","name":"Gb major","notes":["Gb","Bb","Db"]},{"degree":"iv","name":"Ab minor","notes":["Ab","Cb","Eb"]},{"degree":"V7","name":"Bb dominant 7th","notes":["Bb","D","F","Ab"]},{"degree":"VI","name":"Cb major","notes":["Cb","Eb","Gb"]},{"degree":"VII","name":"Db major","notes":["Db","F","Ab"]}]}]}};
+
+const CHORD_TYPE = name => {
+  if (name.includes('diminished')) return 'diminished';
+  if (name.includes('dominant'))   return 'dominant';
+  if (name.includes('minor'))      return 'minor';
+  return 'major';
+};
+
+const ACCENT = { major:'#c9a84c', minor:'#7a9cc8', diminished:'#c06060', dominant:'#72b87a' };
+const ACCENT2= { major:'#f0d080', minor:'#a8c4e4', diminished:'#e09090', dominant:'#a0d8a8' };
+
+// Short display name
+const shortName = name => name
+  .replace(' dominant 7th', '7')
+  .replace(' major','')
+  .replace(' minor','m')
+  .replace(' diminished','°');
+
+const MAJOR_DEGREES = ['I','ii','iii','IV','V7','vi','vii°'];
+const MINOR_DEGREES = ['i','ii°','III','iv','V7','VI','VII'];
+const DEGREE_FULL = [
+  'טוניקה (Tonic)',
+  'סופר-טוניקה (Supertonic)',
+  'מדיאנטה (Mediant)',
+  'סוב-דומיננטה (Subdominant)',
+  'דומיננטה (Dominant)',
+  'סוב-מדיאנטה (Submediant)',
+  'טון מוביל (Leading Tone)'
+];
+
+let currentMode = 'major';
+let activeBtn   = null;
+
+const tableScroll = document.getElementById('tableScroll');
+const detailCard  = document.getElementById('detailCard');
+const dpChord     = document.getElementById('dpChord');
+const dpKey       = document.getElementById('dpKey');
+const dpDegree    = document.getElementById('dpDegree');
+const dpNotes     = document.getElementById('dpNotes');
+const modeToggle  = document.getElementById('modeToggle');
+
+function renderTable() {
+  const keys = DATA.scales[currentMode];
+  const degrees = currentMode === 'major' ? MAJOR_DEGREES : MINOR_DEGREES;
+
+  const html = `
+  <table>
+    <thead>
+      <tr>
+        <th>סולם</th>
+        ${degrees.map((d,i) => `
+          <th class="deg-header">
+            <span class="deg-roman">${d}</span>
+            <span class="deg-type">${DEGREE_FULL[i]}</span>
+          </th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      ${keys.map((keyData, ri) => `
+        <tr style="--ri:${ri}">
+          <td class="key-cell">${keyData.key}</td>
+          ${keyData.chords.map(chord => {
+            const type = CHORD_TYPE(chord.name);
+            const sn   = shortName(chord.name);
+            return `<td class="chord-cell">
+              <button class="chord-btn" data-type="${type}"
+                data-key="${keyData.key}" data-name="${chord.name}"
+                data-degree="${chord.degree}" data-notes="${chord.notes.join(',')}">
+                <span class="cb-name">${sn}</span>
+              </button>
+            </td>`;
+          }).join('')}
+        </tr>`).join('')}
+    </tbody>
+  </table>`;
+
+  tableScroll.innerHTML = html;
+
+  // Bind clicks
+  tableScroll.querySelectorAll('.chord-btn').forEach(btn => {
+    btn.addEventListener('click', e => handleChordClick(e, btn));
+  });
+}
+
+function handleChordClick(e, btn) {
+  createRipple(e, btn);
+
+  if (activeBtn === btn) {
+    btn.classList.remove('active');
+    activeBtn = null;
+    hideDetail();
+    return;
+  }
+  if (activeBtn) activeBtn.classList.remove('active');
+  activeBtn = btn;
+  btn.classList.add('active');
+
+  const type   = btn.dataset.type;
+  const accent = ACCENT[type];
+  const accent2= ACCENT2[type];
+  const notes  = btn.dataset.notes.split(',');
+
+  detailCard.style.setProperty('--dp-accent', accent);
+
+  dpChord.textContent  = btn.dataset.name;
+  dpKey.textContent    = `סולם: ${btn.dataset.key} ${currentMode === 'major' ? 'Major' : 'Minor'}`;
+  const degIdx = (currentMode === 'major' ? MAJOR_DEGREES : MINOR_DEGREES).indexOf(btn.dataset.degree);
+  dpDegree.textContent = `${btn.dataset.degree} — ${degIdx >= 0 ? DEGREE_FULL[degIdx] : ''}`;
+
+  dpNotes.innerHTML = '';
+  notes.forEach((n, ni) => {
+    const pill = document.createElement('span');
+    pill.className = 'note-pill';
+    pill.textContent = n;
+    pill.style.setProperty('--ni', ni);
+    pill.style.setProperty('--dp-accent', accent);
+    pill.style.color = accent2;
+    dpNotes.appendChild(pill);
+    requestAnimationFrame(() => requestAnimationFrame(() => pill.classList.add('show')));
+  });
+
+  detailCard.classList.add('visible');
+}
+
+function hideDetail() {
+  detailCard.classList.remove('visible');
+}
+
+function createRipple(e, el) {
+  const r = document.createElement('span');
+  r.className = 'ripple';
+  const rect = el.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px`;
+  el.appendChild(r);
+  setTimeout(() => r.remove(), 550);
+}
+
+// Mode switch
+const toggleTrack = document.getElementById('toggleTrack');
+modeToggle.addEventListener('click', () => {
+  currentMode = currentMode === 'major' ? 'minor' : 'major';
+  modeToggle.dataset.mode = currentMode;
+  toggleTrack.classList.toggle('minor', currentMode === 'minor');
+  document.body.classList.toggle('minor-mode', currentMode === 'minor');
+  activeBtn = null;
+  hideDetail();
+  renderTable();
+});
+
+renderTable();
+</script>
+</body>
+</html>
