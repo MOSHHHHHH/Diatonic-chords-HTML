@@ -470,14 +470,309 @@
   }
 
   /* ══ ANIMATIONS ══ */
-  @keyframes topbarIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:none; } }
-  @keyframes rowIn    { from { opacity:0; transform:translateX(8px);   } to { opacity:1; transform:none; } }
+  @keyframes topbarIn  { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:none; } }
+  @keyframes rowIn     { from { opacity:0; transform:translateX(8px);   } to { opacity:1; transform:none; } }
   @keyframes rippleAnim { to { transform:scale(5); opacity:0; } }
-  @keyframes pillPop  { from { opacity:0; transform:scale(0.82) translateY(6px); } to { opacity:1; transform:none; } }
+  @keyframes pillPop   { from { opacity:0; transform:scale(0.82) translateY(6px); } to { opacity:1; transform:none; } }
 
   ::-webkit-scrollbar { width: 3px; height: 3px; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 100px; }
   ::-webkit-scrollbar-track { background: transparent; }
+
+  /* ════════════════════════════════════════════════
+     PRACTICE MODE
+  ════════════════════════════════════════════════ */
+
+  /* practice button in topbar */
+  .prac-open-btn {
+    display: flex; align-items: center; gap: 0.45rem;
+    background: color-mix(in srgb, var(--lime) 12%, var(--bg3));
+    border: 1px solid color-mix(in srgb, var(--lime) 40%, transparent);
+    border-radius: 8px;
+    padding: 0.45rem 0.9rem;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--lime);
+    transition: background var(--tr), box-shadow var(--tr);
+    white-space: nowrap;
+    user-select: none;
+  }
+  .prac-open-btn:hover {
+    background: color-mix(in srgb, var(--lime) 20%, var(--bg3));
+    box-shadow: 0 0 16px color-mix(in srgb, var(--lime) 20%, transparent);
+  }
+  .prac-open-btn .prac-icon { font-size: 0.9rem; }
+
+  /* full-screen overlay */
+  .prac-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    font-family: inherit;
+    overflow: hidden;
+  }
+  .prac-overlay::before {
+    content: '';
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 55% 40% at 50% 0%, rgba(74,222,128,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 35% at 50% 100%, rgba(56,189,248,0.04) 0%, transparent 55%);
+    z-index: 0;
+    transition: background 0.6s ease;
+  }
+  .prac-overlay.prac-wrong::before {
+    background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(251,146,60,0.08) 0%, transparent 60%);
+  }
+  .prac-overlay.prac-correct::before {
+    background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(74,222,128,0.09) 0%, transparent 60%);
+  }
+
+  /* ── topbar inside practice ── */
+  .prac-topbar {
+    position: relative; z-index: 10;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 0.6rem 1.2rem;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border2);
+    flex-wrap: wrap;
+  }
+  .prac-meta {
+    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  }
+  .prac-title {
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--lime);
+  }
+  .prac-progress-txt {
+    font-size: 0.7rem; font-weight: 500; color: var(--text-sub);
+  }
+  .prac-mode-badge {
+    font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em;
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 6px; padding: 0.2rem 0.6rem; color: var(--text-sub);
+  }
+  .prac-exit-btn {
+    display: flex; align-items: center; gap: 0.4rem;
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 0.4rem 0.8rem; cursor: pointer;
+    font-family: inherit; font-size: 0.72rem; font-weight: 500; color: var(--text-sub);
+    transition: border-color var(--tr), color var(--tr);
+    white-space: nowrap;
+  }
+  .prac-exit-btn:hover { border-color: var(--orange); color: var(--orange); }
+
+  /* ── main practice area ── */
+  .prac-main {
+    position: relative; z-index: 1;
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 1.5rem 1.5rem 1rem;
+    gap: 0; min-height: 0;
+  }
+
+  /* key label */
+  .prac-key-label {
+    font-family: 'Courier New', monospace;
+    font-size: clamp(1.3rem, 3vw, 2.2rem);
+    font-weight: 700; letter-spacing: -0.01em;
+    color: var(--text);
+    margin-bottom: 0.2rem;
+    animation: rowIn 0.35s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .prac-key-label em {
+    font-style: normal;
+    color: var(--prac-key-col, var(--lime));
+  }
+
+  /* chord sequence row */
+  .prac-seq {
+    display: flex; gap: 0.35rem; flex-wrap: wrap; justify-content: center;
+    margin: 0.85rem 0 1.1rem;
+    max-width: 700px;
+  }
+  .prac-seq-chip {
+    display: flex; flex-direction: column; align-items: center;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 0.4rem 0.55rem;
+    min-width: 3rem;
+    background: var(--bg2);
+    transition: border-color 0.2s, background 0.2s, transform 0.2s;
+    position: relative;
+  }
+  .prac-seq-chip .chip-degree {
+    font-family: 'Courier New', monospace;
+    font-size: 0.65rem; font-weight: 700; color: var(--text-dim);
+    margin-bottom: 0.15rem; letter-spacing: 0.04em;
+  }
+  .prac-seq-chip .chip-name {
+    font-family: 'Courier New', monospace;
+    font-size: 0.78rem; font-weight: 700; color: var(--text-sub);
+    white-space: nowrap;
+  }
+  /* done */
+  .prac-seq-chip.done {
+    border-color: color-mix(in srgb, var(--lime) 35%, transparent);
+    background: color-mix(in srgb, var(--lime) 7%, var(--bg2));
+  }
+  .prac-seq-chip.done .chip-name { color: var(--lime); }
+  .prac-seq-chip.done .chip-degree { color: color-mix(in srgb, var(--lime) 55%, transparent); }
+  .prac-seq-chip.done::after {
+    content: '✓';
+    position: absolute; top: -0.35rem; right: -0.25rem;
+    font-size: 0.55rem; color: var(--lime);
+    background: var(--bg2); border-radius: 50%;
+    width: 0.9rem; height: 0.9rem; display: flex; align-items: center; justify-content: center;
+    border: 1px solid color-mix(in srgb, var(--lime) 40%, transparent);
+  }
+  /* current */
+  .prac-seq-chip.current {
+    border-color: var(--prac-key-col, var(--lime));
+    background: color-mix(in srgb, var(--prac-key-col, var(--lime)) 12%, var(--bg2));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--prac-key-col, var(--lime)) 22%, transparent);
+    animation: chipPulse 2s ease-in-out infinite;
+  }
+  .prac-seq-chip.current .chip-degree { color: color-mix(in srgb, var(--prac-key-col, var(--lime)) 70%, transparent); }
+  .prac-seq-chip.current .chip-name { color: var(--prac-key-col, var(--lime)); }
+  /* repeat-I chip */
+  .prac-seq-chip.repeat-i { opacity: 0.55; }
+  .prac-seq-chip.repeat-i.current, .prac-seq-chip.repeat-i.done { opacity: 1; }
+
+  @keyframes chipPulse {
+    0%,100% { box-shadow: 0 4px 16px color-mix(in srgb, var(--prac-key-col, var(--lime)) 22%, transparent); }
+    50%      { box-shadow: 0 4px 24px color-mix(in srgb, var(--prac-key-col, var(--lime)) 38%, transparent); }
+  }
+
+  /* big chord name */
+  .prac-chord-big {
+    font-family: 'Courier New', monospace;
+    font-size: clamp(2.8rem, 7vw, 5.5rem);
+    font-weight: 700; letter-spacing: -0.02em;
+    color: var(--prac-key-col, var(--lime));
+    line-height: 1;
+    margin: 0.3rem 0 0.5rem;
+    transition: color 0.25s ease;
+    position: relative;
+  }
+  /* glow behind big chord */
+  .prac-chord-big::after {
+    content: attr(data-text);
+    position: absolute; inset: 0;
+    color: transparent;
+    text-shadow: 0 0 40px color-mix(in srgb, var(--prac-key-col, var(--lime)) 45%, transparent);
+    pointer-events: none;
+  }
+  .prac-chord-big.anim-in {
+    animation: chordBigIn 0.32s cubic-bezier(0.34,1.5,0.64,1) both;
+  }
+  @keyframes chordBigIn {
+    from { opacity:0; transform:scale(0.75) translateY(10px); }
+    to   { opacity:1; transform:none; }
+  }
+
+  /* status line */
+  .prac-status {
+    font-size: 0.88rem; font-weight: 600;
+    color: var(--text-sub);
+    min-height: 1.4rem;
+    transition: color 0.2s;
+    text-align: center;
+  }
+  .prac-status.ok     { color: var(--lime);   }
+  .prac-status.err    { color: var(--orange); }
+  .prac-status.hint   { color: var(--text-sub); }
+
+  /* hint pill row */
+  .prac-hint {
+    display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center;
+    min-height: 2.2rem; margin-top: 0.5rem;
+    transition: opacity 0.35s ease;
+  }
+  .prac-hint.hidden { opacity: 0; pointer-events: none; }
+  .prac-hint-pill {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem; font-weight: 700;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 0.3rem 0.75rem;
+    background: var(--bg3);
+    color: var(--text-sub);
+    animation: pillPop 0.34s calc(var(--ni,0)*0.07s) cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+
+  /* hint timer bar */
+  .prac-hint-bar-wrap {
+    width: min(260px, 70vw); height: 3px;
+    background: var(--border);
+    border-radius: 100px;
+    overflow: hidden;
+    margin-top: 0.6rem;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .prac-hint-bar-wrap.visible { opacity: 1; }
+  .prac-hint-bar {
+    height: 100%; border-radius: 100px;
+    background: var(--text-dim);
+    transform-origin: right;
+    transition: transform linear; /* duration set by JS */
+  }
+
+  /* instructions area */
+  .prac-instructions {
+    margin-top: 1rem;
+    padding: 0.65rem 1.1rem;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    text-align: center;
+    line-height: 1.7;
+    max-width: 520px;
+  }
+  .prac-instructions strong { color: var(--text-sub); font-weight: 600; }
+
+  /* MIDI permission screen */
+  .prac-midi-screen {
+    position: absolute; inset: 0; z-index: 5;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1.2rem; padding: 2rem; background: var(--bg);
+    text-align: center;
+  }
+  .prac-midi-icon { font-size: 3rem; }
+  .prac-midi-title { font-size: 1.3rem; font-weight: 700; color: var(--text); }
+  .prac-midi-desc  { font-size: 0.8rem; color: var(--text-sub); max-width: 380px; line-height: 1.7; }
+  .prac-midi-btn {
+    padding: 0.7rem 2rem; border-radius: 10px; border: 1px solid var(--lime);
+    background: color-mix(in srgb, var(--lime) 14%, var(--bg3));
+    color: var(--lime); font-family: inherit; font-size: 0.82rem; font-weight: 700;
+    cursor: pointer; transition: background var(--tr), box-shadow var(--tr);
+  }
+  .prac-midi-btn:hover { background: color-mix(in srgb, var(--lime) 22%, var(--bg3)); box-shadow: 0 0 20px color-mix(in srgb, var(--lime) 22%, transparent); }
+  .prac-midi-err { font-size: 0.75rem; color: var(--orange); display: none; }
+
+  /* completion screen */
+  .prac-done-screen {
+    position: absolute; inset: 0; z-index: 5;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1rem; padding: 2rem; background: var(--bg);
+    text-align: center;
+  }
+  .prac-done-screen.show { display: flex; animation: rowIn 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+  .prac-done-emoji { font-size: 3.5rem; }
+  .prac-done-title { font-size: 1.5rem; font-weight: 700; color: var(--lime); }
+  .prac-done-desc  { font-size: 0.82rem; color: var(--text-sub); max-width: 340px; line-height: 1.7; }
+  .prac-done-btn {
+    padding: 0.65rem 2rem; border-radius: 10px; border: 1px solid var(--lime);
+    background: color-mix(in srgb, var(--lime) 14%, var(--bg3));
+    color: var(--lime); font-family: inherit; font-size: 0.82rem; font-weight: 700;
+    cursor: pointer; transition: background var(--tr);
+  }
+  .prac-done-btn:hover { background: color-mix(in srgb, var(--lime) 22%, var(--bg3)); }
 </style>
 </head>
 <body>
@@ -501,6 +796,9 @@
       <span class="tl tl-seventh">מרובעים</span>
     </button>
     <div class="legend" id="legend"></div>
+    <button class="prac-open-btn" id="openPracticeBtn">
+      <span class="prac-icon">🎹</span> מצב תרגול
+    </button>
   </div>
 </div>
 
@@ -524,6 +822,67 @@
         </div>
       </div>
     </div>
+  </div>
+
+</div>
+
+<!-- ══ PRACTICE OVERLAY ══ -->
+<div id="practiceOverlay" class="prac-overlay" style="display:none">
+
+  <!-- MIDI permission screen -->
+  <div class="prac-midi-screen" id="pracMidiScreen">
+    <div class="prac-midi-icon">🎹</div>
+    <div class="prac-midi-title">מצב תרגול</div>
+    <div class="prac-midi-desc">
+      האפליקציה צריכה גישה למקלדת ה-MIDI שלך.<br>
+      חבר את הכלי ולחץ על הכפתור להתחלת התרגול.
+    </div>
+    <button class="prac-midi-btn" id="pracRequestMidi">בקש גישה ל-MIDI</button>
+    <div class="prac-midi-err" id="pracMidiErr">⚠ לא נמצאה גישה ל-MIDI. ודא שהמכשיר מחובר ושהדפדפן תומך ב-Web MIDI API.</div>
+  </div>
+
+  <!-- practice topbar -->
+  <div class="prac-topbar" id="pracTopbar" style="display:none">
+    <div class="prac-meta">
+      <span class="prac-title">🎹 מצב תרגול</span>
+      <span class="prac-progress-txt" id="pracProgressTxt"></span>
+      <span class="prac-mode-badge" id="pracModeBadge"></span>
+    </div>
+    <button class="prac-exit-btn" id="pracExitBtn">✕ יציאה</button>
+  </div>
+
+  <!-- practice main -->
+  <div class="prac-main" id="pracMain" style="display:none">
+    <div class="prac-key-label" id="pracKeyLabel">
+      סולם: <em id="pracKeyName"></em>
+    </div>
+
+    <div class="prac-seq" id="pracSeq"></div>
+
+    <div class="prac-chord-big" id="pracChordBig" data-text=""></div>
+
+    <div class="prac-status" id="pracStatus">נגן את האקורד המסומן</div>
+
+    <div class="prac-hint hidden" id="pracHint"></div>
+
+    <div class="prac-hint-bar-wrap" id="pracHintBarWrap">
+      <div class="prac-hint-bar" id="pracHintBar"></div>
+    </div>
+
+    <div class="prac-instructions">
+      <strong>הנחיות:</strong>
+      נגן את כל 7 האקורדים בסולם לפי הסדר, ואז חזור ל-<strong>I</strong> שוב ·
+      אוקטבה לא משנה · תווים כפולים לא משנים · תווים מהאקורד הקודם מתעלמים ·
+      לאחר <strong>7 שניות</strong> יופיעו שמות התווים
+    </div>
+  </div>
+
+  <!-- completion screen -->
+  <div class="prac-done-screen" id="pracDoneScreen">
+    <div class="prac-done-emoji">🏆</div>
+    <div class="prac-done-title">כל הכבוד!</div>
+    <div class="prac-done-desc" id="pracDoneDesc"></div>
+    <button class="prac-done-btn" id="pracRestartBtn">תרגול נוסף</button>
   </div>
 
 </div>
@@ -762,7 +1121,21 @@ function hideDetail() {
   showEmpty();
 }
 
+function exitPracticeIfOpen() {
+  if (practiceOverlay.style.display !== 'none' && practiceOverlay.style.display !== '') {
+    clearHintTimer();
+    clearTimeout(prac.resetTimer);
+    prac.resetTimer = null;
+    prac.locked = false;
+    prac.held.clear();
+    prac.notesAtStart.clear();
+    practiceOverlay.classList.remove('prac-wrong', 'prac-correct');
+    practiceOverlay.style.display = 'none';
+  }
+}
+
 modeToggle.addEventListener('click', () => {
+  exitPracticeIfOpen();
   currentMode = currentMode === 'major' ? 'minor' : 'major';
   modeToggle.dataset.mode = currentMode;
   modeTrack.classList.toggle('on', currentMode === 'minor');
@@ -773,6 +1146,7 @@ modeToggle.addEventListener('click', () => {
 });
 
 chordToggle.addEventListener('click', () => {
+  exitPracticeIfOpen();
   currentCtype = currentCtype === 'triads' ? 'sevenths' : 'triads';
   chordToggle.dataset.ctype = currentCtype;
   chordTrack.classList.toggle('on', currentCtype === 'sevenths');
@@ -783,6 +1157,379 @@ chordToggle.addEventListener('click', () => {
 
 renderLegend();
 renderTable();
+
+// ════════════════════════════════════════════════════════════════
+//  PRACTICE MODE
+// ════════════════════════════════════════════════════════════════
+
+// ── Pitch-class lookup (handles double-sharps, flats, enharmonics) ──
+const PC_MAP = {
+  'C':0,'B#':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'Fb':4,
+  'F':5,'E#':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,
+  'A#':10,'Bb':10,'B':11,'Cb':11,
+  'B##':1,'C##':2,'D##':4,'E##':6,'F##':7,'G##':9,'A##':11,
+};
+
+function noteNameToPC(name) {
+  return PC_MAP[name] ?? (PC_MAP[name.replace('##','').replace('#','').replace('b','')] ?? 0);
+}
+
+// ── DOM refs ──
+const practiceOverlay  = document.getElementById('practiceOverlay');
+const pracMidiScreen   = document.getElementById('pracMidiScreen');
+const pracRequestMidi  = document.getElementById('pracRequestMidi');
+const pracMidiErr      = document.getElementById('pracMidiErr');
+const pracTopbar       = document.getElementById('pracTopbar');
+const pracMain         = document.getElementById('pracMain');
+const pracProgressTxt  = document.getElementById('pracProgressTxt');
+const pracModeBadge    = document.getElementById('pracModeBadge');
+const pracExitBtn      = document.getElementById('pracExitBtn');
+const pracKeyLabel     = document.getElementById('pracKeyLabel');
+const pracKeyName      = document.getElementById('pracKeyName');
+const pracSeq          = document.getElementById('pracSeq');
+const pracChordBig     = document.getElementById('pracChordBig');
+const pracStatus       = document.getElementById('pracStatus');
+const pracHint         = document.getElementById('pracHint');
+const pracHintBarWrap  = document.getElementById('pracHintBarWrap');
+const pracHintBar      = document.getElementById('pracHintBar');
+const pracDoneScreen   = document.getElementById('pracDoneScreen');
+const pracDoneDesc     = document.getElementById('pracDoneDesc');
+const pracRestartBtn   = document.getElementById('pracRestartBtn');
+const openPracticeBtn  = document.getElementById('openPracticeBtn');
+
+// ── Practice state ──
+const prac = {
+  midiAccess: null,
+  held: new Set(),          // currently held MIDI notes (raw MIDI note numbers)
+  notesAtStart: new Set(),  // notes held when current chord was shown (ignored in matching)
+  keyIdx: 0,
+  chordIdx: 0,              // 0..6 = degrees, 7 = repeat of I
+  hintTimer: null,
+  hintBarTimer: null,
+  resetTimer: null,         // setTimeout ID from onWrong/onCorrect — cancellable
+  hintShown: false,
+  locked: false,            // locked briefly after wrong/correct feedback
+  startTime: null,
+  mistakeCount: 0,
+};
+
+const HINT_DELAY = 7000; // ms
+
+function getPracKeys()     { return DATA[currentCtype][currentMode]; }
+function getPracKeyData()  { return getPracKeys()[prac.keyIdx]; }
+// sequence = 7 degrees + repeat of I (index 8 total)
+function getSeqChords()    {
+  const kd = getPracKeyData();
+  return [...kd.chords, {...kd.chords[0], isRepeatI: true}];
+}
+function getCurrentTarget() { return getSeqChords()[prac.chordIdx]; }
+
+// ── Open practice overlay ──
+openPracticeBtn.addEventListener('click', () => {
+  practiceOverlay.style.display = 'flex';
+  pracDoneScreen.classList.remove('show');
+
+  // If MIDI already granted, skip the permission screen and go straight to practice
+  if (prac.midiAccess) {
+    pracMidiScreen.style.display = 'none';
+    pracTopbar.style.display     = 'flex';
+    pracMain.style.display       = 'flex';
+    startPractice();
+  } else {
+    pracMidiScreen.style.display = 'flex';
+    pracTopbar.style.display     = 'none';
+    pracMain.style.display       = 'none';
+  }
+});
+
+// ── Request MIDI ──
+pracRequestMidi.addEventListener('click', async () => {
+  pracMidiErr.style.display = 'none';
+  if (!navigator.requestMIDIAccess) {
+    pracMidiErr.textContent = '⚠ הדפדפן שלך אינו תומך ב-Web MIDI API. נסה Chrome או Edge.';
+    pracMidiErr.style.display = 'block';
+    return;
+  }
+  try {
+    prac.midiAccess = await navigator.requestMIDIAccess();
+    attachMidiListeners();
+    startPractice();
+  } catch (e) {
+    pracMidiErr.textContent = '⚠ גישה ל-MIDI נדחתה. אנא אשר גישה בדפדפן ונסה שוב.';
+    pracMidiErr.style.display = 'block';
+  }
+});
+
+function attachMidiListeners() {
+  for (const input of prac.midiAccess.inputs.values()) {
+    input.onmidimessage = handleMidi;
+  }
+  // also listen for new devices
+  prac.midiAccess.onstatechange = () => {
+    for (const input of prac.midiAccess.inputs.values()) {
+      input.onmidimessage = handleMidi;
+    }
+  };
+}
+
+function handleMidi(event) {
+  if (!prac.midiAccess) return;
+  const [status, note, velocity] = event.data;
+  const cmd = status & 0xf0;
+  if (cmd === 0x90 && velocity > 0) {
+    prac.held.add(note);
+    if (!prac.locked) checkChord();
+  } else if (cmd === 0x80 || (cmd === 0x90 && velocity === 0)) {
+    prac.held.delete(note);
+    // KEY FIX: once a "carried-over" note is physically released,
+    // clear it from the ignore-list so a re-press counts as a fresh note.
+    prac.notesAtStart.delete(note);
+  }
+}
+
+// ── Start / restart full practice session ──
+function startPractice() {
+  prac.keyIdx = 0;
+  prac.startTime = Date.now();
+  prac.mistakeCount = 0;
+  prac.held.clear();
+  prac.notesAtStart.clear();
+  prac.locked = false;
+
+  pracMidiScreen.style.display = 'none';
+  pracTopbar.style.display     = 'flex';
+  pracMain.style.display       = 'flex';
+  pracDoneScreen.classList.remove('show');
+
+  const keys    = getPracKeys();
+  const modeStr = currentMode === 'major' ? 'Major' : 'Minor';
+  const typeStr = currentCtype === 'triads' ? 'Triads' : '7th Chords';
+  pracModeBadge.textContent = `${modeStr} · ${typeStr}`;
+
+  // set accent colour on overlay variables
+  practiceOverlay.style.setProperty('--prac-key-col',
+    currentMode === 'major' ? 'var(--pink)' : 'var(--cyan)');
+
+  startKey(0);
+}
+
+function startKey(ki) {
+  prac.keyIdx    = ki;
+  prac.chordIdx  = 0;
+  prac.held.clear();
+  prac.notesAtStart.clear();
+  clearHintTimer();
+
+  const keys = getPracKeys();
+  pracProgressTxt.textContent = `סולם ${ki + 1} מתוך ${keys.length}`;
+
+  const kd = getPracKeyData();
+  pracKeyName.textContent = kd.key + ' ' + (currentMode === 'major' ? 'Major' : 'Minor');
+  // Double rAF: first frame commits animation:none, second re-applies it
+  pracKeyLabel.style.animation = 'none';
+  requestAnimationFrame(() => requestAnimationFrame(() => { pracKeyLabel.style.animation = ''; }));
+
+  renderSeq();
+  showCurrentChord();
+}
+
+function renderSeq() {
+  const seq = getSeqChords();
+  pracSeq.innerHTML = seq.map((ch, i) => {
+    const isDone    = i < prac.chordIdx;
+    const isCurrent = i === prac.chordIdx;
+    const isRepeat  = i === 7;
+    const classes = ['prac-seq-chip',
+      isDone ? 'done' : '',
+      isCurrent ? 'current' : '',
+      isRepeat ? 'repeat-i' : ''
+    ].filter(Boolean).join(' ');
+    return `<div class="${classes}">
+      <span class="chip-degree">${isRepeat ? (currentMode === 'minor' ? 'i' : 'I') : ch.degree}</span>
+      <span class="chip-name">${shortName(ch.name)}</span>
+    </div>`;
+  }).join('');
+}
+
+function showCurrentChord() {
+  clearHintTimer();
+  prac.hintShown = false;
+  prac.locked    = false;
+
+  // snapshot held notes — these will be ignored for matching
+  prac.notesAtStart = new Set(prac.held);
+
+  const target = getCurrentTarget();
+  const display = shortName(target.name);
+
+  pracChordBig.textContent = display;
+  pracChordBig.setAttribute('data-text', display);
+  // Double rAF: ensures class removal is rendered before re-adding triggers animation
+  pracChordBig.classList.remove('anim-in');
+  requestAnimationFrame(() => requestAnimationFrame(() => pracChordBig.classList.add('anim-in')));
+
+  setStatus('נגן את האקורד המסומן', '');
+  pracHint.classList.add('hidden');
+  pracHint.innerHTML = '';
+  pracHintBarWrap.classList.remove('visible');
+
+  // flash remove wrong/correct class
+  practiceOverlay.classList.remove('prac-wrong', 'prac-correct');
+
+  // start 7-second hint timer
+  startHintTimer();
+}
+
+function startHintTimer() {
+  // Reset bar with a forced reflow between removing and re-adding the transition
+  pracHintBarWrap.classList.add('visible');
+  pracHintBar.style.transition = 'none';
+  pracHintBar.style.transform  = 'scaleX(1)';
+  // Double rAF ensures the "no-transition reset" frame is committed before starting animation
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    pracHintBar.style.transition = `transform ${HINT_DELAY}ms linear`;
+    pracHintBar.style.transform  = 'scaleX(0)';
+  }));
+
+  prac.hintTimer = setTimeout(() => {
+    if (!prac.hintShown) showHint();
+  }, HINT_DELAY);
+}
+
+function clearHintTimer() {
+  clearTimeout(prac.hintTimer);
+  clearTimeout(prac.hintBarTimer);
+  pracHintBarWrap.classList.remove('visible');
+  pracHintBar.style.transition = 'none';
+  pracHintBar.style.transform  = 'scaleX(1)';
+}
+
+function showHint() {
+  prac.hintShown = true;
+  const target = getCurrentTarget();
+  pracHint.innerHTML = target.notes.map((n, i) =>
+    `<span class="prac-hint-pill" style="--ni:${i}">${n}</span>`
+  ).join('');
+  pracHint.classList.remove('hidden');
+  setStatus('הנה תווי האקורד — נסה לנגן אותם', 'hint');
+}
+
+function setStatus(msg, cls = '') {
+  pracStatus.textContent = msg;
+  pracStatus.className   = 'prac-status' + (cls ? ' ' + cls : '');
+}
+
+// ── Chord matching ──
+function checkChord() {
+  const target    = getCurrentTarget();
+  const targetPCs = target.notes.map(noteNameToPC);
+  const chordSize = targetPCs.length; // 3 for triads, 4 for sevenths
+
+  // active pitch-classes = held notes that were NOT held when chord was shown
+  const activePCs = new Set();
+  for (const n of prac.held) {
+    if (!prac.notesAtStart.has(n)) activePCs.add(n % 12);
+  }
+
+  // need at least chordSize new notes before judging
+  if (activePCs.size < chordSize) return;
+
+  const correct = targetPCs.every(pc => activePCs.has(pc));
+  if (correct) {
+    onCorrect();
+  } else {
+    onWrong();
+  }
+}
+
+function onCorrect() {
+  prac.locked = true;
+  clearHintTimer();
+  clearTimeout(prac.resetTimer);
+  practiceOverlay.classList.remove('prac-wrong');
+  practiceOverlay.classList.add('prac-correct');
+
+  const seq = getSeqChords();
+  const isLast = prac.chordIdx === seq.length - 1;
+
+  if (isLast) {
+    // finished this key
+    setStatus('✓ סולם הושלם! 🎉', 'ok');
+    renderSeq();
+
+    prac.resetTimer = setTimeout(() => {
+      const keys = getPracKeys();
+      if (prac.keyIdx + 1 >= keys.length) {
+        showDone();
+      } else {
+        startKey(prac.keyIdx + 1);
+      }
+    }, 900);
+  } else {
+    setStatus('✓ נכון!', 'ok');
+    prac.chordIdx++;
+    renderSeq();
+    prac.resetTimer = setTimeout(() => showCurrentChord(), 500);
+  }
+}
+
+function onWrong() {
+  prac.locked = true;
+  prac.mistakeCount++;
+  clearHintTimer();
+  clearTimeout(prac.resetTimer);
+  practiceOverlay.classList.remove('prac-correct');
+  practiceOverlay.classList.add('prac-wrong');
+
+  setStatus('✗ לא נכון — חוזרים לתחילת הסולם', 'err');
+
+  prac.resetTimer = setTimeout(() => {
+    // restart key from degree I
+    prac.chordIdx = 0;
+    prac.held.clear();
+    prac.notesAtStart.clear();
+    renderSeq();
+    showCurrentChord();
+  }, 1200);
+}
+
+function showDone() {
+  const elapsed = Math.round((Date.now() - prac.startTime) / 1000);
+  const mins    = Math.floor(elapsed / 60);
+  const secs    = elapsed % 60;
+  const timeStr = mins > 0 ? `${mins}:${String(secs).padStart(2,'0')} דקות` : `${secs} שניות`;
+  const keys    = getPracKeys();
+  const modeStr = currentMode === 'major' ? 'Major' : 'Minor';
+  const typeStr = currentCtype === 'triads' ? 'טריאדות' : 'אקורדים שביעיים';
+
+  pracDoneDesc.textContent =
+    `השלמת את כל ${keys.length} הסולמות ב${modeStr} (${typeStr}) ` +
+    `תוך ${timeStr}` +
+    (prac.mistakeCount > 0 ? ` עם ${prac.mistakeCount} טעויות.` : ' ללא טעויות!');
+
+  pracDoneScreen.classList.add('show');
+}
+
+pracRestartBtn.addEventListener('click', () => {
+  pracDoneScreen.classList.remove('show');
+  // Re-attach listeners in case device was reconnected/changed
+  if (prac.midiAccess) attachMidiListeners();
+  startPractice();
+});
+
+pracExitBtn.addEventListener('click', () => {
+  // Cancel all pending timers before hiding
+  clearHintTimer();
+  clearTimeout(prac.resetTimer);
+  prac.resetTimer = null;
+  prac.locked     = false;
+  prac.held.clear();
+  prac.notesAtStart.clear();
+  practiceOverlay.classList.remove('prac-wrong', 'prac-correct');
+  practiceOverlay.style.display = 'none';
+});
+
 </script>
+
 </body>
 </html>
