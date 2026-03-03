@@ -876,8 +876,9 @@
     display: grid;
     grid-template-columns: 7.8rem 1fr 6.6rem;
     align-items: center; gap: 1.5rem;
-    animation: velSlideIn 0.18s cubic-bezier(0.22,1,0.36,1) both;
     transition: opacity 0.4s ease;
+    /* animation handled by JS FLIP */
+    opacity: 0; /* starts hidden; JS animates to 1 */
   }
   .vel-row.released { opacity: 0.38; }
   @keyframes velSlideIn {
@@ -1413,7 +1414,13 @@ const VEL_LINGER = 3000;
 function velNoteOn(note, velocity) {
   const vp  = velocity / 127;
   const val = (vp * 10).toFixed(1);
-  const el  = document.createElement('div');
+
+  // ── FLIP: snapshot existing rows' Y positions BEFORE DOM change ──
+  const existing = Array.from(velRows.children);
+  const oldTops  = existing.map(el => el.getBoundingClientRect().top);
+
+  // ── Append new row (triggers reflow — existing rows shift up) ──
+  const el = document.createElement('div');
   el.className = 'vel-row';
   el.style.setProperty('--vp', vp.toFixed(3));
   el.innerHTML =
@@ -1422,6 +1429,26 @@ function velNoteOn(note, velocity) {
     `<span class="vel-val">${val}</span>`;
   velRows.appendChild(el);
   velEntries.push({ uid: velUid++, note, vel: velocity, releasedAt: null, el });
+
+  // ── FLIP: animate existing rows from old → new position ──
+  existing.forEach((row, i) => {
+    const newTop = row.getBoundingClientRect().top;
+    const dy = oldTops[i] - newTop; // positive = row moved up
+    if (Math.abs(dy) < 1) return;
+    row.animate(
+      [{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }],
+      { duration: 160, easing: 'cubic-bezier(0.22,1,0.36,1)', fill: 'none' }
+    );
+  });
+
+  // ── New row: enter from below ──
+  el.animate(
+    [
+      { opacity: '0', transform: 'translateY(28px)' },
+      { opacity: '1', transform: 'translateY(0)' }
+    ],
+    { duration: 200, delay: 60, easing: 'cubic-bezier(0.22,1,0.36,1)', fill: 'both' }
+  );
 }
 
 function velNoteOff(note) {
@@ -1438,8 +1465,23 @@ function velPrune() {
   const now = Date.now();
   for (let i = velEntries.length - 1; i >= 0; i--) {
     if (velEntries[i].releasedAt !== null && now - velEntries[i].releasedAt >= VEL_LINGER) {
-      velEntries[i].el.remove();
+      const row      = velEntries[i].el;
+      const siblings = Array.from(velRows.children).filter(el => el !== row);
+      const oldTops  = siblings.map(el => el.getBoundingClientRect().top);
+
+      row.remove();
       velEntries.splice(i, 1);
+
+      // FLIP: siblings below the removed row shift up — animate them settling
+      siblings.forEach((el, j) => {
+        const newTop = el.getBoundingClientRect().top;
+        const dy = oldTops[j] - newTop;
+        if (Math.abs(dy) < 1) return;
+        el.animate(
+          [{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }],
+          { duration: 220, easing: 'cubic-bezier(0.22,1,0.36,1)', fill: 'none' }
+        );
+      });
     }
   }
 }
