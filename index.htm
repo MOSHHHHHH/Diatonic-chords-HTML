@@ -2231,7 +2231,2267 @@ function demoPlay() {
         const vel    = genVel(i);
         demoSchedule(() => { if (!prac.demoMode) return; simNoteOn(midi, vel); }, jitter);
         demoSchedule(() => { if (!prac.demoMode) return; simNoteOff(midi); },    jitter + holdChord);
+      });<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>אקורדים דיאטוניים</title>
+<style>
+  /* ══ ROOT — font scales with viewport so every rem unit follows ══ */
+  html {
+    font-size: clamp(12px, 1.05vw, 17px);
+  }
+
+  :root {
+    /* backgrounds */
+    --bg:    #111318;
+    --bg2:   #1a1d24;
+    --bg3:   #22262f;
+    --bg4:   #2a2f3a;
+
+    /* borders */
+    --border:  rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+
+    /* accent colours — softened for readability */
+    --pink:      #f0547a;
+    --pink-dim:  rgba(240,84,122,0.13);
+    --cyan:      #38bdf8;
+    --cyan-dim:  rgba(56,189,248,0.13);
+    --orange:    #fb923c;
+    --orange-dim:rgba(251,146,60,0.13);
+    --lime:      #4ade80;
+    --lime-dim:  rgba(74,222,128,0.13);
+    --purple:    #a78bfa;
+    --purple-dim:rgba(167,139,250,0.13);
+
+    /* text — high contrast hierarchy */
+    --text:      #f0f2f8;
+    --text-sub:  #9098b0;
+    --text-dim:  #4a5068;
+
+    /* transitions */
+    --tr:     0.22s cubic-bezier(0.4,0,0.2,1);
+    --bounce: 0.44s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    /* readable sans-serif for labels; monospace stays for chord names */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* subtle noise texture instead of harsh scanlines */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 900;
+  }
+
+  /* ambient glow — very subtle */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 10% 0%,   rgba(240,84,122,0.06)  0%, transparent 55%),
+      radial-gradient(ellipse 50% 35% at 90% 100%,  rgba(56,189,248,0.05)  0%, transparent 55%);
+    pointer-events: none;
+    z-index: 0;
+    transition: background 0.8s ease;
+  }
+  body.minor-mode::before {
+    background:
+      radial-gradient(ellipse 60% 40% at 10% 0%,   rgba(56,189,248,0.06)  0%, transparent 55%),
+      radial-gradient(ellipse 50% 35% at 90% 100%,  rgba(74,222,128,0.04)  0%, transparent 55%);
+  }
+
+  /* ══ TOPBAR ══ */
+  .topbar {
+    position: relative; z-index: 10;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.65rem 1.2rem;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border2);
+    flex-wrap: wrap;
+    /* topbar slides down on load */
+    animation: topbarIn 0.5s cubic-bezier(0.22,1,0.36,1) both;
+  }
+
+  .header-tag {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--mode-accent, var(--pink));
+    margin-bottom: 0.15rem;
+    transition: color 0.5s ease;
+  }
+  body.minor-mode .header-tag { --mode-accent: var(--cyan); }
+
+  h1 {
+    /* scales smoothly from small to large screens */
+    font-size: clamp(1.05rem, 1.8rem, 1.8rem);
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+  }
+  h1 em {
+    font-style: normal;
+    color: var(--mode-accent, var(--pink));
+    transition: color 0.5s ease;
+  }
+  body.minor-mode h1 em { --mode-accent: var(--cyan); }
+
+  /* ── controls ── */
+  .controls {
+    display: flex;
+    gap: 0.55rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .tog-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 0.45rem 0.85rem;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    color: var(--text-sub);
+    transition: border-color var(--tr), background var(--tr), box-shadow var(--tr);
+    white-space: nowrap;
+    user-select: none;
+  }
+  .tog-btn:hover {
+    background: var(--bg4);
+    border-color: var(--border2);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+  }
+
+  /* pill toggle track */
+  .toggle-track {
+    width: 2.4rem; height: 1.2rem;
+    border-radius: 100px;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    position: relative; flex-shrink: 0;
+    transition: background 0.35s ease, border-color 0.35s ease;
+  }
+  .toggle-track.on {
+    background: color-mix(in srgb, var(--tk-on, var(--cyan)) 18%, var(--bg));
+    border-color: var(--tk-on, var(--cyan));
+  }
+  .toggle-thumb {
+    width: 0.8rem; height: 0.8rem;
+    border-radius: 50%;
+    background: var(--tk-col, var(--pink));
+    position: absolute; top: 50%; transform: translateY(-50%);
+    left: calc(100% - 0.18rem - 0.8rem);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    transition: left var(--bounce), background 0.35s ease, box-shadow 0.35s ease;
+  }
+  .toggle-track.on .toggle-thumb {
+    left: 0.18rem;
+    background: var(--tk-on, var(--cyan));
+    box-shadow: 0 0 8px color-mix(in srgb, var(--tk-on, var(--cyan)) 60%, transparent);
+  }
+
+  #modeTrack  { --tk-col: var(--pink);   --tk-on: var(--cyan); }
+  #chordTrack { --tk-col: var(--text-dim); --tk-on: var(--purple); }
+
+  .tl { transition: color var(--tr), opacity var(--tr); font-weight: 500; }
+  #modeToggle[data-mode="major"]   .tl-major  { color: var(--pink); font-weight: 700; }
+  #modeToggle[data-mode="major"]   .tl-minor  { opacity: 0.35; }
+  #modeToggle[data-mode="minor"]   .tl-minor  { color: var(--cyan); font-weight: 700; }
+  #modeToggle[data-mode="minor"]   .tl-major  { opacity: 0.35; }
+  #chordToggle[data-ctype="triads"]   .tl-triad   { color: var(--text); font-weight: 700; }
+  #chordToggle[data-ctype="triads"]   .tl-seventh { opacity: 0.35; }
+  #chordToggle[data-ctype="sevenths"] .tl-seventh { color: var(--purple); font-weight: 700; }
+  #chordToggle[data-ctype="sevenths"] .tl-triad   { opacity: 0.35; }
+
+  /* legend */
+  .legend {
+    display: flex; gap: 0.85rem; align-items: center; flex-wrap: wrap;
+    padding: 0.35rem 0.75rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 0.35rem; font-size: 0.7rem; font-weight: 500; color: var(--text-sub); }
+  .legend-dot  { width: 0.5rem; height: 0.5rem; border-radius: 50%; flex-shrink: 0; }
+
+  /* ══ MAIN ══ */
+  .main {
+    position: relative; z-index: 1;
+    flex: 1;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    grid-template-columns: 1fr;
+    grid-template-areas: "table" "detail";
+    min-height: 0;
+    overflow: hidden;
+  }
+  @media (min-width: 860px) {
+    .main {
+      grid-template-rows: 1fr;
+      grid-template-columns: 1fr var(--detail-w, 18rem);
+      grid-template-areas: "table detail";
+    }
+  }
+  @media (min-width: 1100px) { .main { --detail-w: 21rem; } }
+  @media (min-width: 1400px) { .main { --detail-w: 24rem; } }
+
+  /* ══ TABLE AREA ══ */
+  .table-area {
+    grid-area: table;
+    overflow: auto;
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.1) transparent;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  thead th {
+    padding: 0.6rem 0.35rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text);
+    border-bottom: 1px solid var(--border2);
+    white-space: nowrap;
+    position: sticky; top: 0;
+    background: var(--bg2);
+    z-index: 10;
+    text-align: center;
+    letter-spacing: 0.03em;
+  }
+  thead th:first-child {
+    text-align: right;
+    padding-right: 0.8rem;
+    padding-left: 0.8rem;
+    color: var(--text-sub);
+    border-right: 1px solid var(--border);
+    font-family: inherit;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background var(--tr);
+    /* staggered row slide-in */
+    animation: rowIn 0.38s calc(var(--ri,0) * 0.028s) cubic-bezier(0.22,1,0.36,1) both;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,0.028); }
+
+  td.key-cell {
+    padding: 0 0.75rem;
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--key-col, var(--pink));
+    white-space: nowrap;
+    position: sticky; left: 0;
+    background: var(--bg2);
+    z-index: 5;
+    border-right: 1px solid var(--border);
+    transition: color 0.4s;
+  }
+  body.minor-mode td.key-cell { --key-col: var(--cyan); }
+
+  td.chord-cell { padding: 0.18rem 0.18rem; text-align: center; vertical-align: middle; }
+
+  .chord-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0.42rem 0.3rem;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    transition: background var(--tr), border-color var(--tr), box-shadow var(--tr), transform 0.15s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .chord-btn[data-type="major"]           { --cs: var(--pink);   --ct: var(--pink);   --cb: var(--pink-dim);   }
+  .chord-btn[data-type="minor"]           { --cs: var(--cyan);   --ct: var(--cyan);   --cb: var(--cyan-dim);   }
+  .chord-btn[data-type="diminished"]      { --cs: var(--orange); --ct: var(--orange); --cb: var(--orange-dim); }
+  .chord-btn[data-type="dominant"]        { --cs: var(--lime);   --ct: var(--lime);   --cb: var(--lime-dim);   }
+  .chord-btn[data-type="half-diminished"] { --cs: var(--purple); --ct: var(--purple); --cb: var(--purple-dim); }
+  .chord-btn[data-type="major7"]          { --cs: var(--pink);   --ct: var(--pink);   --cb: var(--pink-dim);   }
+  .chord-btn[data-type="minor7"]          { --cs: var(--cyan);   --ct: var(--cyan);   --cb: var(--cyan-dim);   }
+
+  .chord-btn:hover {
+    background: var(--cb);
+    border-color: color-mix(in srgb, var(--cs) 50%, transparent);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 12px color-mix(in srgb, var(--cs) 18%, transparent);
+  }
+  .chord-btn.active {
+    background: var(--cb);
+    border-color: var(--cs);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--cs) 50%, transparent),
+                0 4px 16px color-mix(in srgb, var(--cs) 25%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .cb-name {
+    font-family: 'Courier New', monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--ct);
+    letter-spacing: 0.01em;
+    position: relative; z-index: 1;
+    white-space: nowrap;
+    transition: opacity var(--tr);
+  }
+
+  /* ripple */
+  .ripple {
+    position: absolute; border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    transform: scale(0);
+    animation: rippleAnim 0.52s cubic-bezier(0,0.5,0.5,1);
+    pointer-events: none;
+  }
+
+  /* ══ DETAIL AREA ══ */
+  .detail-area {
+    grid-area: detail;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg2);
+    border-top: 1px solid var(--border2);
+    overflow: hidden;
+    min-height: 0;
+  }
+  @media (min-width: 860px) {
+    .detail-area { border-top: none; border-right: 1px solid var(--border2); }
+  }
+
+  .detail-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1.3rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+    /* accent top stripe */
+    border-top: 2px solid var(--dp-accent, var(--pink));
+    transition: border-color 0.3s ease;
+  }
+
+  /* subtle dot grid */
+  .detail-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 1.4rem 1.4rem;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .detail-empty {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    position: relative; z-index: 1;
+  }
+
+  .dp-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 0.3rem;
+    position: relative; z-index: 1;
+  }
+  .dp-chord {
+    font-family: 'Courier New', monospace;
+    font-size: clamp(1.1rem, 2vw, 1.55rem);
+    font-weight: 700;
+    color: var(--dp-accent, var(--pink));
+    letter-spacing: 0.01em;
+    line-height: 1.15;
+    transition: color 0.28s ease;
+    position: relative; z-index: 1;
+    /* entrance animation handled via .show class */
+  }
+  .dp-key {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-sub);
+    margin-top: 0.3rem;
+    position: relative; z-index: 1;
+  }
+  .dp-degree {
+    font-family: 'Courier New', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--dp-accent, var(--pink));
+    opacity: 0.75;
+    position: relative; z-index: 1;
+    margin-top: 0.15rem;
+    transition: color 0.28s ease;
+  }
+
+  .dp-divider {
+    height: 1px;
+    background: var(--border2);
+    margin: 0.85rem 0;
+    position: relative; z-index: 1;
+  }
+
+  .dp-notes-wrap { position: relative; z-index: 1; }
+  .dp-notes { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.4rem; }
+
+  .note-pill {
+    border: 1px solid color-mix(in srgb, var(--dp-accent, var(--pink)) 55%, transparent);
+    color: var(--dp-accent, var(--pink));
+    border-radius: 6px;
+    padding: 0.32rem 0.85rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    background: color-mix(in srgb, var(--dp-accent, var(--pink)) 10%, transparent);
+    opacity: 0;
+    transform: scale(0.82) translateY(6px);
+    transition: border-color 0.28s, color 0.28s, background 0.28s;
+  }
+  .note-pill.show { animation: pillPop 0.36s calc(var(--ni,0) * 0.065s) cubic-bezier(0.34,1.56,0.64,1) both; }
+
+  @media (max-width: 859px) {
+    .detail-area { max-height: 40vh; }
+    .detail-card { padding: 0.85rem 1.1rem; }
+  }
+
+  /* ══ ANIMATIONS ══ */
+  @keyframes topbarIn  { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:none; } }
+  @keyframes rowIn     { from { opacity:0; transform:translateX(8px);   } to { opacity:1; transform:none; } }
+  @keyframes rippleAnim { to { transform:scale(5); opacity:0; } }
+  @keyframes pillPop   { from { opacity:0; transform:scale(0.82) translateY(6px); } to { opacity:1; transform:none; } }
+
+  ::-webkit-scrollbar { width: 3px; height: 3px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 100px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  /* ════════════════════════════════════════════════
+     PRACTICE MODE
+  ════════════════════════════════════════════════ */
+
+  /* practice button in topbar */
+  .prac-open-btn {
+    display: flex; align-items: center; gap: 0.45rem;
+    background: color-mix(in srgb, var(--lime) 12%, var(--bg3));
+    border: 1px solid color-mix(in srgb, var(--lime) 40%, transparent);
+    border-radius: 8px;
+    padding: 0.45rem 0.9rem;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--lime);
+    transition: background var(--tr), box-shadow var(--tr);
+    white-space: nowrap;
+    user-select: none;
+  }
+  .prac-open-btn:hover {
+    background: color-mix(in srgb, var(--lime) 20%, var(--bg3));
+    box-shadow: 0 0 16px color-mix(in srgb, var(--lime) 20%, transparent);
+  }
+  .prac-open-btn .prac-icon { font-size: 0.9rem; }
+
+  /* full-screen overlay */
+  .prac-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    font-family: inherit;
+    overflow: hidden;
+  }
+  .prac-overlay::before {
+    content: '';
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 55% 40% at 50% 0%, rgba(74,222,128,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 35% at 50% 100%, rgba(56,189,248,0.04) 0%, transparent 55%);
+    z-index: 0;
+    transition: background 0.6s ease;
+  }
+  .prac-overlay.prac-wrong::before {
+    background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(251,146,60,0.08) 0%, transparent 60%);
+  }
+  .prac-overlay.prac-correct::before {
+    background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(74,222,128,0.09) 0%, transparent 60%);
+  }
+
+  /* ── topbar inside practice ── */
+  .prac-topbar {
+    position: relative; z-index: 10;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 0.6rem 1.2rem;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border2);
+    flex-wrap: wrap;
+  }
+  .prac-meta {
+    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  }
+  .prac-title {
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--lime);
+  }
+  .prac-progress-txt {
+    font-size: 0.7rem; font-weight: 500; color: var(--text-sub);
+  }
+  .prac-mode-badge {
+    font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em;
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 6px; padding: 0.2rem 0.6rem; color: var(--text-sub);
+  }
+  .prac-exit-btn {
+    display: flex; align-items: center; gap: 0.4rem;
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 0.4rem 0.8rem; cursor: pointer;
+    font-family: inherit; font-size: 0.72rem; font-weight: 500; color: var(--text-sub);
+    transition: border-color var(--tr), color var(--tr);
+    white-space: nowrap;
+  }
+  .prac-exit-btn:hover { border-color: var(--orange); color: var(--orange); }
+
+  .prac-demo-btn {
+    display: flex; align-items: center; gap: 0.4rem;
+    background: color-mix(in srgb, var(--purple) 12%, var(--bg3));
+    border: 1px solid color-mix(in srgb, var(--purple) 38%, transparent);
+    border-radius: 8px; padding: 0.4rem 0.8rem; cursor: pointer;
+    font-family: inherit; font-size: 0.72rem; font-weight: 600;
+    color: var(--purple); transition: background var(--tr), box-shadow var(--tr);
+    white-space: nowrap;
+  }
+  .prac-demo-btn:hover {
+    background: color-mix(in srgb, var(--purple) 20%, var(--bg3));
+    box-shadow: 0 0 14px color-mix(in srgb, var(--purple) 22%, transparent);
+  }
+  .prac-demo-btn.active {
+    background: color-mix(in srgb, var(--purple) 22%, var(--bg3));
+    border-color: var(--purple);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--purple) 28%, transparent);
+  }
+
+  .prac-demo-badge {
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em;
+    background: color-mix(in srgb, var(--purple) 18%, var(--bg3));
+    border: 1px solid color-mix(in srgb, var(--purple) 45%, transparent);
+    border-radius: 6px; padding: 0.2rem 0.65rem; color: var(--purple);
+    animation: demoBadgePulse 2.5s ease-in-out infinite;
+  }
+  @keyframes demoBadgePulse {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.6; }
+  }
+
+  /* ── main practice area ── */
+  .prac-main {
+    position: relative; z-index: 1;
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    /* leave room for the vel-panel on the right */
+    padding: 1.5rem calc(32rem + 2.4rem) 1rem 1.5rem;
+    gap: 0; min-height: 0;
+  }
+  /* on narrow screens, vel panel stacks below */
+  @media (max-width: 900px) {
+    .prac-main { padding: 1.5rem 1.5rem 14rem 1.5rem; }
+  }
+
+  /* key label */
+  .prac-key-label {
+    font-family: 'Courier New', monospace;
+    font-size: clamp(1.3rem, 3vw, 2.2rem);
+    font-weight: 700; letter-spacing: -0.01em;
+    color: var(--text);
+    margin-bottom: 0.2rem;
+    animation: rowIn 0.35s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .prac-key-label em {
+    font-style: normal;
+    color: var(--prac-key-col, var(--lime));
+  }
+
+  /* chord sequence row */
+  .prac-seq {
+    display: flex; gap: 0.35rem; flex-wrap: wrap; justify-content: center;
+    margin: 0.85rem 0 1.1rem;
+    max-width: 700px;
+  }
+  .prac-seq-chip {
+    display: flex; flex-direction: column; align-items: center;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 0.4rem 0.55rem;
+    min-width: 3rem;
+    background: var(--bg2);
+    transition: border-color 0.2s, background 0.2s, transform 0.2s;
+    position: relative;
+  }
+  .prac-seq-chip .chip-degree {
+    font-family: 'Courier New', monospace;
+    font-size: 0.65rem; font-weight: 700; color: var(--text-dim);
+    margin-bottom: 0.15rem; letter-spacing: 0.04em;
+  }
+  .prac-seq-chip .chip-name {
+    font-family: 'Courier New', monospace;
+    font-size: 0.78rem; font-weight: 700; color: var(--text-sub);
+    white-space: nowrap;
+  }
+  /* done */
+  .prac-seq-chip.done {
+    border-color: color-mix(in srgb, var(--lime) 35%, transparent);
+    background: color-mix(in srgb, var(--lime) 7%, var(--bg2));
+  }
+  .prac-seq-chip.done .chip-name { color: var(--lime); }
+  .prac-seq-chip.done .chip-degree { color: color-mix(in srgb, var(--lime) 55%, transparent); }
+  .prac-seq-chip.done::after {
+    content: '✓';
+    position: absolute; top: -0.35rem; right: -0.25rem;
+    font-size: 0.55rem; color: var(--lime);
+    background: var(--bg2); border-radius: 50%;
+    width: 0.9rem; height: 0.9rem; display: flex; align-items: center; justify-content: center;
+    border: 1px solid color-mix(in srgb, var(--lime) 40%, transparent);
+  }
+  /* current */
+  .prac-seq-chip.current {
+    border-color: var(--prac-key-col, var(--lime));
+    background: color-mix(in srgb, var(--prac-key-col, var(--lime)) 12%, var(--bg2));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--prac-key-col, var(--lime)) 22%, transparent);
+    animation: chipPulse 2s ease-in-out infinite;
+  }
+  .prac-seq-chip.current .chip-degree { color: color-mix(in srgb, var(--prac-key-col, var(--lime)) 70%, transparent); }
+  .prac-seq-chip.current .chip-name { color: var(--prac-key-col, var(--lime)); }
+  /* repeat-I chip */
+  .prac-seq-chip.repeat-i { opacity: 0.55; }
+  .prac-seq-chip.repeat-i.current, .prac-seq-chip.repeat-i.done { opacity: 1; }
+
+  @keyframes chipPulse {
+    0%,100% { box-shadow: 0 4px 16px color-mix(in srgb, var(--prac-key-col, var(--lime)) 22%, transparent); }
+    50%      { box-shadow: 0 4px 24px color-mix(in srgb, var(--prac-key-col, var(--lime)) 38%, transparent); }
+  }
+
+  /* big chord name */
+  .prac-chord-big {
+    font-family: 'Courier New', monospace;
+    font-size: clamp(2.8rem, 7vw, 5.5rem);
+    font-weight: 700; letter-spacing: -0.02em;
+    color: var(--prac-key-col, var(--lime));
+    line-height: 1;
+    margin: 0.3rem 0 0.5rem;
+    transition: color 0.25s ease;
+    position: relative;
+  }
+  /* glow behind big chord */
+  .prac-chord-big::after {
+    content: attr(data-text);
+    position: absolute; inset: 0;
+    color: transparent;
+    text-shadow: 0 0 40px color-mix(in srgb, var(--prac-key-col, var(--lime)) 45%, transparent);
+    pointer-events: none;
+  }
+  .prac-chord-big.anim-in {
+    animation: chordBigIn 0.32s cubic-bezier(0.34,1.5,0.64,1) both;
+  }
+  @keyframes chordBigIn {
+    from { opacity:0; transform:scale(0.75) translateY(10px); }
+    to   { opacity:1; transform:none; }
+  }
+
+  /* status line */
+  .prac-status {
+    font-size: 0.88rem; font-weight: 600;
+    color: var(--text-sub);
+    min-height: 1.4rem;
+    transition: color 0.2s;
+    text-align: center;
+  }
+  .prac-status.ok     { color: var(--lime);   }
+  .prac-status.err    { color: var(--orange); }
+  .prac-status.hint   { color: var(--text-sub); }
+
+  /* hint pill row */
+  .prac-hint {
+    display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center;
+    min-height: 2.2rem; margin-top: 0.5rem;
+    transition: opacity 0.35s ease;
+  }
+  .prac-hint.hidden { opacity: 0; pointer-events: none; }
+  .prac-hint-pill {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem; font-weight: 700;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 0.3rem 0.75rem;
+    background: var(--bg3);
+    color: var(--text-sub);
+    animation: pillPop 0.34s calc(var(--ni,0)*0.07s) cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+
+  /* hint timer bar */
+  .prac-hint-bar-wrap {
+    width: min(260px, 70vw); height: 3px;
+    background: var(--border);
+    border-radius: 100px;
+    overflow: hidden;
+    margin-top: 0.6rem;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .prac-hint-bar-wrap.visible { opacity: 1; }
+  .prac-hint-bar {
+    height: 100%; border-radius: 100px;
+    background: var(--text-dim);
+    transform-origin: right;
+    transition: transform linear; /* duration set by JS */
+  }
+
+  /* instructions area */
+  .prac-instructions {
+    margin-top: 1rem;
+    padding: 0.65rem 1.1rem;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    text-align: center;
+    line-height: 1.7;
+    max-width: 520px;
+  }
+  .prac-instructions strong { color: var(--text-sub); font-weight: 600; }
+
+  /* MIDI permission screen */
+  .prac-midi-screen {
+    position: absolute; inset: 0; z-index: 5;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1.2rem; padding: 2rem; background: var(--bg);
+    text-align: center;
+  }
+  .prac-midi-icon { font-size: 3rem; }
+  .prac-midi-title { font-size: 1.3rem; font-weight: 700; color: var(--text); }
+  .prac-midi-desc  { font-size: 0.8rem; color: var(--text-sub); max-width: 380px; line-height: 1.7; }
+  .prac-midi-btn {
+    padding: 0.7rem 2rem; border-radius: 10px; border: 1px solid var(--lime);
+    background: color-mix(in srgb, var(--lime) 14%, var(--bg3));
+    color: var(--lime); font-family: inherit; font-size: 0.82rem; font-weight: 700;
+    cursor: pointer; transition: background var(--tr), box-shadow var(--tr);
+  }
+  .prac-midi-btn:hover { background: color-mix(in srgb, var(--lime) 22%, var(--bg3)); box-shadow: 0 0 20px color-mix(in srgb, var(--lime) 22%, transparent); }
+  .prac-demo-entry-btn {
+    border-color: var(--purple);
+    background: color-mix(in srgb, var(--purple) 14%, var(--bg3));
+    color: var(--purple);
+  }
+  .prac-demo-entry-btn:hover {
+    background: color-mix(in srgb, var(--purple) 22%, var(--bg3));
+    box-shadow: 0 0 20px color-mix(in srgb, var(--purple) 22%, transparent);
+  }
+  .prac-midi-err { font-size: 0.75rem; color: var(--orange); display: none; }
+
+  /* ── MIDI device selection ── */
+  .prac-device-list {
+    display: none; flex-direction: column; gap: 0.55rem;
+    width: 100%; max-width: 360px;
+  }
+  .prac-device-list.show { display: flex; animation: rowIn 0.3s both; }
+  .prac-device-label {
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--text-dim); text-align: center;
+  }
+  .prac-device-card {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.8rem;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: border-color var(--tr), background var(--tr), box-shadow var(--tr);
+    text-align: right;
+  }
+  .prac-device-card:hover {
+    border-color: var(--lime);
+    background: color-mix(in srgb, var(--lime) 7%, var(--bg3));
+    box-shadow: 0 0 16px color-mix(in srgb, var(--lime) 14%, transparent);
+  }
+  .prac-device-card.selected {
+    border-color: var(--lime);
+    background: color-mix(in srgb, var(--lime) 12%, var(--bg3));
+  }
+  .prac-device-name {
+    font-size: 0.82rem; font-weight: 600; color: var(--text); flex: 1;
+  }
+  .prac-device-icon { font-size: 1.1rem; flex-shrink: 0; }
+  .prac-device-connect {
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em;
+    color: var(--lime); white-space: nowrap; flex-shrink: 0;
+  }
+
+  /* ── Velocity panel ── */
+  .vel-panel {
+    position: absolute;
+    top: 50%; right: 1.2rem;
+    transform: translateY(-50%);
+    z-index: 20;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 32px;
+    padding: 1.8rem 2.4rem 2rem;
+    width: 30rem; max-width: calc(100vw - 2.4rem);
+    max-height: 80vh; overflow: hidden;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.38);
+    display: flex; flex-direction: column; gap: 0.9rem;
+    pointer-events: none;
+  }
+  /* narrow: stick to bottom, full width */
+  @media (max-width: 900px) {
+    .vel-panel {
+      top: auto; right: 0; bottom: 0; left: 0;
+      transform: none;
+      width: 100%; max-width: 100%;
+      border-radius: 24px 24px 0 0;
+      max-height: 12rem;
+      padding: 1rem 1.6rem 1.2rem;
+    }
+  }
+  .vel-panel-title {
+    font-size: 1.5rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-dim);
+    margin-bottom: 0.4rem; pointer-events: none;
+  }
+  .vel-rows { display: flex; flex-direction: column; gap: 0.65rem; }
+  .vel-row {
+    display: grid;
+    grid-template-columns: 7.8rem 1fr 6.6rem;
+    align-items: center; gap: 1.5rem;
+    transition: opacity 0.4s ease;
+    /* animation handled by JS FLIP */
+    opacity: 0; /* starts hidden; JS animates to 1 */
+  }
+  .vel-row.released { opacity: 0.38; }
+  @keyframes velSlideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .vel-note-name {
+    font-family: 'Courier New', monospace;
+    font-size: 2.3rem; font-weight: 700;
+    color: var(--text-sub); text-align: right;
+    white-space: nowrap;
+  }
+  .vel-row.released .vel-note-name { color: var(--text-dim); }
+  .vel-bar-wrap {
+    height: 12px; border-radius: 100px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .vel-bar {
+    height: 100%; border-radius: 100px;
+    width: calc(var(--vp, 0.5) * 100%);
+    background: color-mix(in srgb, var(--pink) calc(var(--vp,0.5)*100%), var(--cyan));
+    transition: width 0.1s ease;
+  }
+  .vel-val {
+    font-family: 'Courier New', monospace;
+    font-size: 2.1rem; font-weight: 700;
+    color: color-mix(in srgb, var(--pink) calc(var(--vp,0.5)*100%), var(--cyan));
+    text-align: left; white-space: nowrap;
+  }
+
+  /* completion screen */
+  .prac-done-screen {
+    position: absolute; inset: 0; z-index: 5;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1rem; padding: 2rem; background: var(--bg);
+    text-align: center;
+  }
+  .prac-done-screen.show { display: flex; animation: rowIn 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+  .prac-done-emoji { font-size: 3.5rem; }
+  .prac-done-title { font-size: 1.5rem; font-weight: 700; color: var(--lime); }
+  .prac-done-desc  { font-size: 0.82rem; color: var(--text-sub); max-width: 340px; line-height: 1.7; }
+  .prac-done-btn {
+    padding: 0.65rem 2rem; border-radius: 10px; border: 1px solid var(--lime);
+    background: color-mix(in srgb, var(--lime) 14%, var(--bg3));
+    color: var(--lime); font-family: inherit; font-size: 0.82rem; font-weight: 700;
+    cursor: pointer; transition: background var(--tr);
+  }
+  .prac-done-btn:hover { background: color-mix(in srgb, var(--lime) 22%, var(--bg3)); }  /* ── scope row (all / single-key) ── */
+  .prac-scope-row {
+    display: flex; gap: 0.5rem; justify-content: center;
+  }
+  .prac-scope-btn {
+    padding: 0.5rem 1.4rem; border-radius: 20px; cursor: pointer;
+    font-family: inherit; font-size: 0.8rem; font-weight: 600;
+    border: 1px solid var(--border2); background: var(--bg3);
+    color: var(--text-sub); transition: all var(--tr);
+  }
+  .prac-scope-btn.active {
+    border-color: var(--lime); color: var(--lime);
+    background: color-mix(in srgb, var(--lime) 12%, var(--bg3));
+    box-shadow: 0 0 12px color-mix(in srgb, var(--lime) 18%, transparent);
+  }
+  .prac-scope-btn:not(.active):hover {
+    border-color: var(--text-sub); color: var(--text);
+  }
+
+  /* ── key picker grid ── */
+  .prac-key-picker {
+    width: 100%; max-width: 400px;
+  }
+  #pracKeyPickerGrid {
+    display: flex; flex-wrap: wrap; gap: 0.45rem; justify-content: center;
+  }
+  .key-pick-btn {
+    font-family: 'Courier New', monospace;
+    font-size: 0.78rem; font-weight: 700;
+    padding: 0.38rem 0.75rem; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--border2); background: var(--bg3);
+    color: var(--text-sub); transition: all var(--tr);
+    white-space: nowrap;
+  }
+  .key-pick-btn:hover  { border-color: var(--text-sub); color: var(--text); }
+  .key-pick-btn.active {
+    border-color: var(--prac-key-col, var(--lime));
+    color: var(--prac-key-col, var(--lime));
+    background: color-mix(in srgb, var(--prac-key-col, var(--lime)) 12%, var(--bg3));
+  }
+
+  /* ── done screen stats ── */
+  .prac-done-stats {
+    display: flex; flex-wrap: wrap; gap: 0.6rem;
+    justify-content: center; max-width: 480px;
+  }
+  .prac-stat-pill {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 0.55rem 1.1rem;
+    background: var(--bg3); border: 1px solid var(--border2); border-radius: 12px;
+    min-width: 6rem;
+    animation: rowIn 0.4s calc(var(--si,0)*0.08s) both;
+  }
+  .prac-stat-val {
+    font-family: 'Courier New', monospace;
+    font-size: 1.35rem; font-weight: 700; color: var(--lime); line-height: 1;
+  }
+  .prac-stat-lbl {
+    font-size: 0.58rem; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-dim); margin-top: 0.25rem;
+  }
+
+  /* ── mistakes-per-key bar chart ── */
+  .prac-done-chart-wrap {
+    width: 100%; max-width: 480px;
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 12px; padding: 0.9rem 1.1rem 0.7rem;
+    animation: rowIn 0.4s 0.35s both;
+  }
+  .prac-done-chart-title {
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--text-dim);
+    margin-bottom: 0.65rem; text-align: center;
+  }
+  .prac-done-chart {
+    display: flex; align-items: flex-end; gap: 3px;
+    height: 80px;
+  }
+  .chart-col {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; gap: 3px; min-width: 0;
+  }
+  .chart-bar-wrap {
+    width: 100%; display: flex; align-items: flex-end;
+    height: 60px;
+  }
+  .chart-bar {
+    width: 100%; border-radius: 3px 3px 0 0;
+    background: var(--orange);
+    transform-origin: bottom;
+    animation: chartGrow 0.45s calc(var(--ci,0)*0.04s) cubic-bezier(0.34,1.3,0.64,1) both;
+    min-height: 2px;
+  }
+  .chart-bar.zero { background: var(--border2); min-height: 3px; }
+  .chart-label {
+    font-family: 'Courier New', monospace;
+    font-size: 0.48rem; font-weight: 700; color: var(--text-dim);
+    text-align: center; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; width: 100%;
+  }
+  @keyframes chartGrow {
+    from { transform: scaleY(0); opacity: 0; }
+    to   { transform: scaleY(1); opacity: 1; }
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ══ TOPBAR ══ -->
+<div class="topbar">
+  <div class="title-block">
+    <div class="header-tag">// music theory reference</div>
+    <h1>אקורדים <em>דיאטוניים</em></h1>
+  </div>
+
+  <div class="controls">
+    <button class="tog-btn" id="modeToggle" data-mode="major">
+      <span class="tl tl-major">Major</span>
+      <div class="toggle-track" id="modeTrack"><div class="toggle-thumb"></div></div>
+      <span class="tl tl-minor">Minor</span>
+    </button>
+    <button class="tog-btn" id="chordToggle" data-ctype="triads">
+      <span class="tl tl-triad">משולשים</span>
+      <div class="toggle-track" id="chordTrack"><div class="toggle-thumb"></div></div>
+      <span class="tl tl-seventh">מרובעים</span>
+    </button>
+    <div class="legend" id="legend"></div>
+    <button class="prac-open-btn" id="openPracticeBtn">
+      <span class="prac-icon">🎹</span> מצב תרגול
+    </button>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+
+  <div class="table-area" id="tableArea"></div>
+
+  <div class="detail-area">
+    <div class="detail-card" id="detailCard">
+      <div class="detail-empty" id="detailEmpty">// לחץ על אקורד</div>
+      <div id="detailContent" style="display:none">
+        <div class="dp-label">// אקורד</div>
+        <div class="dp-chord"  id="dpChord"></div>
+        <div class="dp-key"    id="dpKey"></div>
+        <div class="dp-degree" id="dpDegree"></div>
+        <div class="dp-divider"></div>
+        <div class="dp-notes-wrap">
+          <div class="dp-label">// תווים</div>
+          <div class="dp-notes" id="dpNotes"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ PRACTICE OVERLAY ══ -->
+<div id="practiceOverlay" class="prac-overlay" style="display:none">
+
+  <!-- MIDI permission screen -->
+  <div class="prac-midi-screen" id="pracMidiScreen">
+    <div class="prac-midi-icon">🎹</div>
+    <div class="prac-midi-title">מצב תרגול</div>
+    <div class="prac-midi-desc" id="pracMidiDesc">
+      האפליקציה צריכה גישה למקלדת ה-MIDI שלך.<br>
+      חבר את הכלי ולחץ על הכפתור להתחלת התרגול.
+    </div>
+
+    <!-- scope selector: all keys vs single key -->
+    <div class="prac-scope-row" id="pracScopeRow" style="display:none">
+      <button class="prac-scope-btn active" id="scopeAllBtn">כל הסולמות</button>
+      <button class="prac-scope-btn" id="scopeSingleBtn">בחר סולם</button>
+    </div>
+
+    <!-- key picker grid (shown when single-key mode selected) -->
+    <div class="prac-key-picker" id="pracKeyPicker" style="display:none">
+      <div id="pracKeyPickerGrid"></div>
+    </div>
+
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center" id="pracMidiBtnRow">
+      <button class="prac-midi-btn" id="pracRequestMidi">בקש גישה ל-MIDI</button>
+      <button class="prac-midi-btn prac-demo-entry-btn" id="pracDemoEntryBtn">🤖 הפעל דמו</button>
+    </div>
+    <!-- device list (shown if multiple inputs found) -->
+    <div class="prac-device-list" id="pracDeviceList">
+      <div class="prac-device-label">בחר מכשיר MIDI</div>
+      <div id="pracDeviceCards"></div>
+    </div>
+    <div class="prac-midi-err" id="pracMidiErr">⚠ לא נמצאה גישה ל-MIDI. ודא שהמכשיר מחובר ושהדפדפן תומך ב-Web MIDI API.</div>
+  </div>
+
+  <!-- practice topbar -->
+  <div class="prac-topbar" id="pracTopbar" style="display:none">
+    <div class="prac-meta">
+      <span class="prac-title">🎹 מצב תרגול</span>
+      <span class="prac-progress-txt" id="pracProgressTxt"></span>
+      <span class="prac-mode-badge" id="pracModeBadge"></span>
+      <span class="prac-demo-badge" id="pracDemoBadge" style="display:none">🤖 מצב דמו</span>
+    </div>
+    <button class="prac-exit-btn" id="pracExitBtn">✕ יציאה</button>
+  </div>
+
+  <!-- practice main -->
+  <div class="prac-main" id="pracMain" style="display:none">
+    <div class="prac-key-label" id="pracKeyLabel">
+      סולם: <em id="pracKeyName"></em>
+    </div>
+
+    <div class="prac-seq" id="pracSeq"></div>
+
+    <div class="prac-chord-big" id="pracChordBig" data-text=""></div>
+
+    <div class="prac-status" id="pracStatus">נגן את האקורד המסומן</div>
+
+    <div class="prac-hint hidden" id="pracHint"></div>
+
+    <div class="prac-hint-bar-wrap" id="pracHintBarWrap">
+      <div class="prac-hint-bar" id="pracHintBar"></div>
+    </div>
+
+    <div class="prac-instructions">
+      נגן את 7 האקורדים הדיאטוניים של הסולם לפי הסדר, וסיים בחזרה על <strong>I</strong> ·
+      ניגון באוקטבה שונה תקין · תווים כפולים מקובלים · תווים מהאקורד הקודם מתעלמים אוטומטית ·
+      לאחר <strong>7 שניות</strong> יוצגו שמות התווים כרמז
+    </div>
+
+    <!-- velocity panel -->
+    <div class="vel-panel" id="velPanel">
+      <div class="vel-panel-title">עוצמת נגינה</div>
+      <div class="vel-rows" id="velRows"></div>
+    </div>
+  </div>
+
+  <!-- completion screen -->
+  <div class="prac-done-screen" id="pracDoneScreen">
+    <div class="prac-done-emoji">🏆</div>
+    <div class="prac-done-title">כל הכבוד!</div>
+    <div class="prac-done-desc" id="pracDoneDesc"></div>
+    <!-- stat pills -->
+    <div class="prac-done-stats" id="pracDoneStats"></div>
+    <!-- mistakes-per-key bar chart -->
+    <div class="prac-done-chart-wrap" id="pracDoneChartWrap" style="display:none">
+      <div class="prac-done-chart-title">טעויות לפי סולם</div>
+      <div class="prac-done-chart" id="pracDoneChart"></div>
+    </div>
+    <button class="prac-done-btn" id="pracRestartBtn">תרגול נוסף</button>
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+//  MUSICAL DATA — verified
+//  Triads: natural scale degrees; minor uses harmonic V (raised 7th)
+//  Sevenths: all 7 diatonic 7th chords per scale
+// ════════════════════════════════════════════════
+const DATA = {
+  triads: {
+    major: [
+      {key:"C",  chords:[{degree:"I",    name:"C major",      notes:["C","E","G"]},    {degree:"ii",   name:"D minor",      notes:["D","F","A"]},    {degree:"iii",  name:"E minor",      notes:["E","G","B"]},    {degree:"IV",   name:"F major",      notes:["F","A","C"]},    {degree:"V",    name:"G major",      notes:["G","B","D"]},    {degree:"vi",   name:"A minor",      notes:["A","C","E"]},    {degree:"vii°", name:"B diminished", notes:["B","D","F"]}]},
+      {key:"G",  chords:[{degree:"I",    name:"G major",      notes:["G","B","D"]},    {degree:"ii",   name:"A minor",      notes:["A","C","E"]},    {degree:"iii",  name:"B minor",      notes:["B","D","F#"]},   {degree:"IV",   name:"C major",      notes:["C","E","G"]},    {degree:"V",    name:"D major",      notes:["D","F#","A"]},   {degree:"vi",   name:"E minor",      notes:["E","G","B"]},    {degree:"vii°", name:"F# diminished",notes:["F#","A","C"]}]},
+      {key:"D",  chords:[{degree:"I",    name:"D major",      notes:["D","F#","A"]},   {degree:"ii",   name:"E minor",      notes:["E","G","B"]},    {degree:"iii",  name:"F# minor",     notes:["F#","A","C#"]},  {degree:"IV",   name:"G major",      notes:["G","B","D"]},    {degree:"V",    name:"A major",      notes:["A","C#","E"]},   {degree:"vi",   name:"B minor",      notes:["B","D","F#"]},   {degree:"vii°", name:"C# diminished",notes:["C#","E","G"]}]},
+      {key:"A",  chords:[{degree:"I",    name:"A major",      notes:["A","C#","E"]},   {degree:"ii",   name:"B minor",      notes:["B","D","F#"]},   {degree:"iii",  name:"C# minor",     notes:["C#","E","G#"]},  {degree:"IV",   name:"D major",      notes:["D","F#","A"]},   {degree:"V",    name:"E major",      notes:["E","G#","B"]},   {degree:"vi",   name:"F# minor",     notes:["F#","A","C#"]},  {degree:"vii°", name:"G# diminished",notes:["G#","B","D"]}]},
+      {key:"E",  chords:[{degree:"I",    name:"E major",      notes:["E","G#","B"]},   {degree:"ii",   name:"F# minor",     notes:["F#","A","C#"]},  {degree:"iii",  name:"G# minor",     notes:["G#","B","D#"]},  {degree:"IV",   name:"A major",      notes:["A","C#","E"]},   {degree:"V",    name:"B major",      notes:["B","D#","F#"]},  {degree:"vi",   name:"C# minor",     notes:["C#","E","G#"]},  {degree:"vii°", name:"D# diminished",notes:["D#","F#","A"]}]},
+      {key:"B",  chords:[{degree:"I",    name:"B major",      notes:["B","D#","F#"]},  {degree:"ii",   name:"C# minor",     notes:["C#","E","G#"]},  {degree:"iii",  name:"D# minor",     notes:["D#","F#","A#"]}, {degree:"IV",   name:"E major",      notes:["E","G#","B"]},   {degree:"V",    name:"F# major",     notes:["F#","A#","C#"]}, {degree:"vi",   name:"G# minor",     notes:["G#","B","D#"]},  {degree:"vii°", name:"A# diminished",notes:["A#","C#","E"]}]},
+      {key:"F#", chords:[{degree:"I",    name:"F# major",     notes:["F#","A#","C#"]}, {degree:"ii",   name:"G# minor",     notes:["G#","B","D#"]},  {degree:"iii",  name:"A# minor",     notes:["A#","C#","E#"]}, {degree:"IV",   name:"B major",      notes:["B","D#","F#"]},  {degree:"V",    name:"C# major",     notes:["C#","E#","G#"]}, {degree:"vi",   name:"D# minor",     notes:["D#","F#","A#"]}, {degree:"vii°", name:"E# diminished",notes:["E#","G#","B"]}]},
+      {key:"Gb", chords:[{degree:"I",    name:"Gb major",     notes:["Gb","Bb","Db"]}, {degree:"ii",   name:"Ab minor",     notes:["Ab","Cb","Eb"]}, {degree:"iii",  name:"Bb minor",     notes:["Bb","Db","F"]},  {degree:"IV",   name:"Cb major",     notes:["Cb","Eb","Gb"]}, {degree:"V",    name:"Db major",     notes:["Db","F","Ab"]},  {degree:"vi",   name:"Eb minor",     notes:["Eb","Gb","Bb"]}, {degree:"vii°", name:"F diminished", notes:["F","Ab","Cb"]}]},
+      {key:"Db", chords:[{degree:"I",    name:"Db major",     notes:["Db","F","Ab"]},  {degree:"ii",   name:"Eb minor",     notes:["Eb","Gb","Bb"]}, {degree:"iii",  name:"F minor",      notes:["F","Ab","C"]},   {degree:"IV",   name:"Gb major",     notes:["Gb","Bb","Db"]}, {degree:"V",    name:"Ab major",     notes:["Ab","C","Eb"]},  {degree:"vi",   name:"Bb minor",     notes:["Bb","Db","F"]},  {degree:"vii°", name:"C diminished", notes:["C","Eb","Gb"]}]},
+      {key:"Ab", chords:[{degree:"I",    name:"Ab major",     notes:["Ab","C","Eb"]},  {degree:"ii",   name:"Bb minor",     notes:["Bb","Db","F"]},  {degree:"iii",  name:"C minor",      notes:["C","Eb","G"]},   {degree:"IV",   name:"Db major",     notes:["Db","F","Ab"]},  {degree:"V",    name:"Eb major",     notes:["Eb","G","Bb"]},  {degree:"vi",   name:"F minor",      notes:["F","Ab","C"]},   {degree:"vii°", name:"G diminished", notes:["G","Bb","Db"]}]},
+      {key:"Eb", chords:[{degree:"I",    name:"Eb major",     notes:["Eb","G","Bb"]},  {degree:"ii",   name:"F minor",      notes:["F","Ab","C"]},   {degree:"iii",  name:"G minor",      notes:["G","Bb","D"]},   {degree:"IV",   name:"Ab major",     notes:["Ab","C","Eb"]},  {degree:"V",    name:"Bb major",     notes:["Bb","D","F"]},   {degree:"vi",   name:"C minor",      notes:["C","Eb","G"]},   {degree:"vii°", name:"D diminished", notes:["D","F","Ab"]}]},
+      {key:"Bb", chords:[{degree:"I",    name:"Bb major",     notes:["Bb","D","F"]},   {degree:"ii",   name:"C minor",      notes:["C","Eb","G"]},   {degree:"iii",  name:"D minor",      notes:["D","F","A"]},    {degree:"IV",   name:"Eb major",     notes:["Eb","G","Bb"]},  {degree:"V",    name:"F major",      notes:["F","A","C"]},    {degree:"vi",   name:"G minor",      notes:["G","Bb","D"]},   {degree:"vii°", name:"A diminished", notes:["A","C","Eb"]}]},
+      {key:"F",  chords:[{degree:"I",    name:"F major",      notes:["F","A","C"]},    {degree:"ii",   name:"G minor",      notes:["G","Bb","D"]},   {degree:"iii",  name:"A minor",      notes:["A","C","E"]},    {degree:"IV",   name:"Bb major",     notes:["Bb","D","F"]},   {degree:"V",    name:"C major",      notes:["C","E","G"]},    {degree:"vi",   name:"D minor",      notes:["D","F","A"]},    {degree:"vii°", name:"E diminished", notes:["E","G","Bb"]}]},
+    ],
+    minor: [
+      {key:"Am",  chords:[{degree:"i",    name:"A minor",      notes:["A","C","E"]},    {degree:"ii°",  name:"B diminished", notes:["B","D","F"]},    {degree:"III",  name:"C major",      notes:["C","E","G"]},    {degree:"iv",   name:"D minor",      notes:["D","F","A"]},    {degree:"V",    name:"E major",      notes:["E","G#","B"]},   {degree:"VI",   name:"F major",      notes:["F","A","C"]},    {degree:"VII",  name:"G major",      notes:["G","B","D"]}]},
+      {key:"Em",  chords:[{degree:"i",    name:"E minor",      notes:["E","G","B"]},    {degree:"ii°",  name:"F# diminished",notes:["F#","A","C"]},   {degree:"III",  name:"G major",      notes:["G","B","D"]},    {degree:"iv",   name:"A minor",      notes:["A","C","E"]},    {degree:"V",    name:"B major",      notes:["B","D#","F#"]},  {degree:"VI",   name:"C major",      notes:["C","E","G"]},    {degree:"VII",  name:"D major",      notes:["D","F#","A"]}]},
+      {key:"Bm",  chords:[{degree:"i",    name:"B minor",      notes:["B","D","F#"]},   {degree:"ii°",  name:"C# diminished",notes:["C#","E","G"]},   {degree:"III",  name:"D major",      notes:["D","F#","A"]},   {degree:"iv",   name:"E minor",      notes:["E","G","B"]},    {degree:"V",    name:"F# major",     notes:["F#","A#","C#"]}, {degree:"VI",   name:"G major",      notes:["G","B","D"]},    {degree:"VII",  name:"A major",      notes:["A","C#","E"]}]},
+      {key:"F#m", chords:[{degree:"i",    name:"F# minor",     notes:["F#","A","C#"]},  {degree:"ii°",  name:"G# diminished",notes:["G#","B","D"]},   {degree:"III",  name:"A major",      notes:["A","C#","E"]},   {degree:"iv",   name:"B minor",      notes:["B","D","F#"]},   {degree:"V",    name:"C# major",     notes:["C#","E#","G#"]}, {degree:"VI",   name:"D major",      notes:["D","F#","A"]},   {degree:"VII",  name:"E major",      notes:["E","G#","B"]}]},
+      {key:"C#m", chords:[{degree:"i",    name:"C# minor",     notes:["C#","E","G#"]},  {degree:"ii°",  name:"D# diminished",notes:["D#","F#","A"]},  {degree:"III",  name:"E major",      notes:["E","G#","B"]},   {degree:"iv",   name:"F# minor",     notes:["F#","A","C#"]},  {degree:"V",    name:"G# major",     notes:["G#","B#","D#"]}, {degree:"VI",   name:"A major",      notes:["A","C#","E"]},   {degree:"VII",  name:"B major",      notes:["B","D#","F#"]}]},
+      {key:"G#m", chords:[{degree:"i",    name:"G# minor",     notes:["G#","B","D#"]},  {degree:"ii°",  name:"A# diminished",notes:["A#","C#","E"]},  {degree:"III",  name:"B major",      notes:["B","D#","F#"]},  {degree:"iv",   name:"C# minor",     notes:["C#","E","G#"]},  {degree:"V",    name:"D# major",     notes:["D#","F##","A#"]},{degree:"VI",   name:"E major",      notes:["E","G#","B"]},   {degree:"VII",  name:"F# major",     notes:["F#","A#","C#"]}]},
+      {key:"Dm",  chords:[{degree:"i",    name:"D minor",      notes:["D","F","A"]},    {degree:"ii°",  name:"E diminished", notes:["E","G","Bb"]},   {degree:"III",  name:"F major",      notes:["F","A","C"]},    {degree:"iv",   name:"G minor",      notes:["G","Bb","D"]},   {degree:"V",    name:"A major",      notes:["A","C#","E"]},   {degree:"VI",   name:"Bb major",     notes:["Bb","D","F"]},   {degree:"VII",  name:"C major",      notes:["C","E","G"]}]},
+      {key:"Gm",  chords:[{degree:"i",    name:"G minor",      notes:["G","Bb","D"]},   {degree:"ii°",  name:"A diminished", notes:["A","C","Eb"]},   {degree:"III",  name:"Bb major",     notes:["Bb","D","F"]},   {degree:"iv",   name:"C minor",      notes:["C","Eb","G"]},   {degree:"V",    name:"D major",      notes:["D","F#","A"]},   {degree:"VI",   name:"Eb major",     notes:["Eb","G","Bb"]},  {degree:"VII",  name:"F major",      notes:["F","A","C"]}]},
+      {key:"Cm",  chords:[{degree:"i",    name:"C minor",      notes:["C","Eb","G"]},   {degree:"ii°",  name:"D diminished", notes:["D","F","Ab"]},   {degree:"III",  name:"Eb major",     notes:["Eb","G","Bb"]},  {degree:"iv",   name:"F minor",      notes:["F","Ab","C"]},   {degree:"V",    name:"G major",      notes:["G","B","D"]},    {degree:"VI",   name:"Ab major",     notes:["Ab","C","Eb"]},  {degree:"VII",  name:"Bb major",     notes:["Bb","D","F"]}]},
+      {key:"Fm",  chords:[{degree:"i",    name:"F minor",      notes:["F","Ab","C"]},   {degree:"ii°",  name:"G diminished", notes:["G","Bb","Db"]},  {degree:"III",  name:"Ab major",     notes:["Ab","C","Eb"]},  {degree:"iv",   name:"Bb minor",     notes:["Bb","Db","F"]},  {degree:"V",    name:"C major",      notes:["C","E","G"]},    {degree:"VI",   name:"Db major",     notes:["Db","F","Ab"]},  {degree:"VII",  name:"Eb major",     notes:["Eb","G","Bb"]}]},
+      {key:"Bbm", chords:[{degree:"i",    name:"Bb minor",     notes:["Bb","Db","F"]},  {degree:"ii°",  name:"C diminished", notes:["C","Eb","Gb"]},  {degree:"III",  name:"Db major",     notes:["Db","F","Ab"]},  {degree:"iv",   name:"Eb minor",     notes:["Eb","Gb","Bb"]}, {degree:"V",    name:"F major",      notes:["F","A","C"]},    {degree:"VI",   name:"Gb major",     notes:["Gb","Bb","Db"]}, {degree:"VII",  name:"Ab major",     notes:["Ab","C","Eb"]}]},
+      {key:"Ebm", chords:[{degree:"i",    name:"Eb minor",     notes:["Eb","Gb","Bb"]}, {degree:"ii°",  name:"F diminished", notes:["F","Ab","Cb"]},  {degree:"III",  name:"Gb major",     notes:["Gb","Bb","Db"]}, {degree:"iv",   name:"Ab minor",     notes:["Ab","Cb","Eb"]}, {degree:"V",    name:"Bb major",     notes:["Bb","D","F"]},   {degree:"VI",   name:"Cb major",     notes:["Cb","Eb","Gb"]}, {degree:"VII",  name:"Db major",     notes:["Db","F","Ab"]}]},
+    ]
+  },
+  sevenths: {
+    major: [
+      {key:"C",  chords:[{degree:"Imaj7",  name:"C major 7th",    notes:["C","E","G","B"]},      {degree:"ii7",   name:"D minor 7th",    notes:["D","F","A","C"]},      {degree:"iii7",   name:"E minor 7th",    notes:["E","G","B","D"]},      {degree:"IVmaj7",name:"F major 7th",    notes:["F","A","C","E"]},      {degree:"V7",    name:"G dominant 7th", notes:["G","B","D","F"]},      {degree:"vi7",   name:"A minor 7th",    notes:["A","C","E","G"]},      {degree:"viiø7", name:"B half-diminished 7th",  notes:["B","D","F","A"]}]},
+      {key:"G",  chords:[{degree:"Imaj7",  name:"G major 7th",    notes:["G","B","D","F#"]},     {degree:"ii7",   name:"A minor 7th",    notes:["A","C","E","G"]},      {degree:"iii7",   name:"B minor 7th",    notes:["B","D","F#","A"]},     {degree:"IVmaj7",name:"C major 7th",    notes:["C","E","G","B"]},      {degree:"V7",    name:"D dominant 7th", notes:["D","F#","A","C"]},     {degree:"vi7",   name:"E minor 7th",    notes:["E","G","B","D"]},      {degree:"viiø7", name:"F# half-diminished 7th", notes:["F#","A","C","E"]}]},
+      {key:"D",  chords:[{degree:"Imaj7",  name:"D major 7th",    notes:["D","F#","A","C#"]},    {degree:"ii7",   name:"E minor 7th",    notes:["E","G","B","D"]},      {degree:"iii7",   name:"F# minor 7th",   notes:["F#","A","C#","E"]},    {degree:"IVmaj7",name:"G major 7th",    notes:["G","B","D","F#"]},     {degree:"V7",    name:"A dominant 7th", notes:["A","C#","E","G"]},     {degree:"vi7",   name:"B minor 7th",    notes:["B","D","F#","A"]},     {degree:"viiø7", name:"C# half-diminished 7th", notes:["C#","E","G","B"]}]},
+      {key:"A",  chords:[{degree:"Imaj7",  name:"A major 7th",    notes:["A","C#","E","G#"]},    {degree:"ii7",   name:"B minor 7th",    notes:["B","D","F#","A"]},     {degree:"iii7",   name:"C# minor 7th",   notes:["C#","E","G#","B"]},    {degree:"IVmaj7",name:"D major 7th",    notes:["D","F#","A","C#"]},    {degree:"V7",    name:"E dominant 7th", notes:["E","G#","B","D"]},     {degree:"vi7",   name:"F# minor 7th",   notes:["F#","A","C#","E"]},    {degree:"viiø7", name:"G# half-diminished 7th", notes:["G#","B","D","F#"]}]},
+      {key:"E",  chords:[{degree:"Imaj7",  name:"E major 7th",    notes:["E","G#","B","D#"]},    {degree:"ii7",   name:"F# minor 7th",   notes:["F#","A","C#","E"]},    {degree:"iii7",   name:"G# minor 7th",   notes:["G#","B","D#","F#"]},   {degree:"IVmaj7",name:"A major 7th",    notes:["A","C#","E","G#"]},    {degree:"V7",    name:"B dominant 7th", notes:["B","D#","F#","A"]},    {degree:"vi7",   name:"C# minor 7th",   notes:["C#","E","G#","B"]},    {degree:"viiø7", name:"D# half-diminished 7th", notes:["D#","F#","A","C#"]}]},
+      {key:"B",  chords:[{degree:"Imaj7",  name:"B major 7th",    notes:["B","D#","F#","A#"]},   {degree:"ii7",   name:"C# minor 7th",   notes:["C#","E","G#","B"]},    {degree:"iii7",   name:"D# minor 7th",   notes:["D#","F#","A#","C#"]},  {degree:"IVmaj7",name:"E major 7th",    notes:["E","G#","B","D#"]},    {degree:"V7",    name:"F# dominant 7th",notes:["F#","A#","C#","E"]},   {degree:"vi7",   name:"G# minor 7th",   notes:["G#","B","D#","F#"]},   {degree:"viiø7", name:"A# half-diminished 7th", notes:["A#","C#","E","G#"]}]},
+      {key:"F#", chords:[{degree:"Imaj7",  name:"F# major 7th",   notes:["F#","A#","C#","E#"]},  {degree:"ii7",   name:"G# minor 7th",   notes:["G#","B","D#","F#"]},   {degree:"iii7",   name:"A# minor 7th",   notes:["A#","C#","E#","G#"]},  {degree:"IVmaj7",name:"B major 7th",    notes:["B","D#","F#","A#"]},   {degree:"V7",    name:"C# dominant 7th",notes:["C#","E#","G#","B"]},   {degree:"vi7",   name:"D# minor 7th",   notes:["D#","F#","A#","C#"]},  {degree:"viiø7", name:"E# half-diminished 7th", notes:["E#","G#","B","D#"]}]},
+      {key:"Gb", chords:[{degree:"Imaj7",  name:"Gb major 7th",   notes:["Gb","Bb","Db","F"]},   {degree:"ii7",   name:"Ab minor 7th",   notes:["Ab","Cb","Eb","Gb"]},  {degree:"iii7",   name:"Bb minor 7th",   notes:["Bb","Db","F","Ab"]},   {degree:"IVmaj7",name:"Cb major 7th",   notes:["Cb","Eb","Gb","Bb"]},  {degree:"V7",    name:"Db dominant 7th",notes:["Db","F","Ab","Cb"]},   {degree:"vi7",   name:"Eb minor 7th",   notes:["Eb","Gb","Bb","Db"]},  {degree:"viiø7", name:"F half-diminished 7th",  notes:["F","Ab","Cb","Eb"]}]},
+      {key:"Db", chords:[{degree:"Imaj7",  name:"Db major 7th",   notes:["Db","F","Ab","C"]},    {degree:"ii7",   name:"Eb minor 7th",   notes:["Eb","Gb","Bb","Db"]},  {degree:"iii7",   name:"F minor 7th",    notes:["F","Ab","C","Eb"]},    {degree:"IVmaj7",name:"Gb major 7th",   notes:["Gb","Bb","Db","F"]},   {degree:"V7",    name:"Ab dominant 7th",notes:["Ab","C","Eb","Gb"]},   {degree:"vi7",   name:"Bb minor 7th",   notes:["Bb","Db","F","Ab"]},   {degree:"viiø7", name:"C half-diminished 7th",  notes:["C","Eb","Gb","Bb"]}]},
+      {key:"Ab", chords:[{degree:"Imaj7",  name:"Ab major 7th",   notes:["Ab","C","Eb","G"]},    {degree:"ii7",   name:"Bb minor 7th",   notes:["Bb","Db","F","Ab"]},   {degree:"iii7",   name:"C minor 7th",    notes:["C","Eb","G","Bb"]},    {degree:"IVmaj7",name:"Db major 7th",   notes:["Db","F","Ab","C"]},    {degree:"V7",    name:"Eb dominant 7th",notes:["Eb","G","Bb","Db"]},   {degree:"vi7",   name:"F minor 7th",    notes:["F","Ab","C","Eb"]},    {degree:"viiø7", name:"G half-diminished 7th",  notes:["G","Bb","Db","F"]}]},
+      {key:"Eb", chords:[{degree:"Imaj7",  name:"Eb major 7th",   notes:["Eb","G","Bb","D"]},    {degree:"ii7",   name:"F minor 7th",    notes:["F","Ab","C","Eb"]},    {degree:"iii7",   name:"G minor 7th",    notes:["G","Bb","D","F"]},     {degree:"IVmaj7",name:"Ab major 7th",   notes:["Ab","C","Eb","G"]},    {degree:"V7",    name:"Bb dominant 7th",notes:["Bb","D","F","Ab"]},    {degree:"vi7",   name:"C minor 7th",    notes:["C","Eb","G","Bb"]},    {degree:"viiø7", name:"D half-diminished 7th",  notes:["D","F","Ab","C"]}]},
+      {key:"Bb", chords:[{degree:"Imaj7",  name:"Bb major 7th",   notes:["Bb","D","F","A"]},     {degree:"ii7",   name:"C minor 7th",    notes:["C","Eb","G","Bb"]},    {degree:"iii7",   name:"D minor 7th",    notes:["D","F","A","C"]},      {degree:"IVmaj7",name:"Eb major 7th",   notes:["Eb","G","Bb","D"]},    {degree:"V7",    name:"F dominant 7th", notes:["F","A","C","Eb"]},     {degree:"vi7",   name:"G minor 7th",    notes:["G","Bb","D","F"]},     {degree:"viiø7", name:"A half-diminished 7th",  notes:["A","C","Eb","G"]}]},
+      {key:"F",  chords:[{degree:"Imaj7",  name:"F major 7th",    notes:["F","A","C","E"]},      {degree:"ii7",   name:"G minor 7th",    notes:["G","Bb","D","F"]},     {degree:"iii7",   name:"A minor 7th",    notes:["A","C","E","G"]},      {degree:"IVmaj7",name:"Bb major 7th",   notes:["Bb","D","F","A"]},     {degree:"V7",    name:"C dominant 7th", notes:["C","E","G","Bb"]},     {degree:"vi7",   name:"D minor 7th",    notes:["D","F","A","C"]},      {degree:"viiø7", name:"E half-diminished 7th",  notes:["E","G","Bb","D"]}]},
+    ],
+    minor: [
+      {key:"Am",  chords:[{degree:"im7",    name:"A minor 7th",    notes:["A","C","E","G"]},      {degree:"iiø7",  name:"B half-diminished 7th",  notes:["B","D","F","A"]},      {degree:"IIImaj7",name:"C major 7th",  notes:["C","E","G","B"]},      {degree:"iv7",  name:"D minor 7th",    notes:["D","F","A","C"]},      {degree:"V7",    name:"E dominant 7th", notes:["E","G#","B","D"]},     {degree:"VImaj7",name:"F major 7th",    notes:["F","A","C","E"]},      {degree:"VII7",  name:"G dominant 7th", notes:["G","B","D","F"]}]},
+      {key:"Em",  chords:[{degree:"im7",    name:"E minor 7th",    notes:["E","G","B","D"]},      {degree:"iiø7",  name:"F# half-diminished 7th", notes:["F#","A","C","E"]},     {degree:"IIImaj7",name:"G major 7th",  notes:["G","B","D","F#"]},     {degree:"iv7",  name:"A minor 7th",    notes:["A","C","E","G"]},      {degree:"V7",    name:"B dominant 7th", notes:["B","D#","F#","A"]},    {degree:"VImaj7",name:"C major 7th",    notes:["C","E","G","B"]},      {degree:"VII7",  name:"D dominant 7th", notes:["D","F#","A","C"]}]},
+      {key:"Bm",  chords:[{degree:"im7",    name:"B minor 7th",    notes:["B","D","F#","A"]},     {degree:"iiø7",  name:"C# half-diminished 7th", notes:["C#","E","G","B"]},     {degree:"IIImaj7",name:"D major 7th",  notes:["D","F#","A","C#"]},    {degree:"iv7",  name:"E minor 7th",    notes:["E","G","B","D"]},      {degree:"V7",    name:"F# dominant 7th",notes:["F#","A#","C#","E"]},   {degree:"VImaj7",name:"G major 7th",    notes:["G","B","D","F#"]},     {degree:"VII7",  name:"A dominant 7th", notes:["A","C#","E","G"]}]},
+      {key:"F#m", chords:[{degree:"im7",    name:"F# minor 7th",   notes:["F#","A","C#","E"]},    {degree:"iiø7",  name:"G# half-diminished 7th", notes:["G#","B","D","F#"]},    {degree:"IIImaj7",name:"A major 7th",  notes:["A","C#","E","G#"]},    {degree:"iv7",  name:"B minor 7th",    notes:["B","D","F#","A"]},     {degree:"V7",    name:"C# dominant 7th",notes:["C#","E#","G#","B"]},   {degree:"VImaj7",name:"D major 7th",    notes:["D","F#","A","C#"]},    {degree:"VII7",  name:"E dominant 7th", notes:["E","G#","B","D"]}]},
+      {key:"C#m", chords:[{degree:"im7",    name:"C# minor 7th",   notes:["C#","E","G#","B"]},    {degree:"iiø7",  name:"D# half-diminished 7th", notes:["D#","F#","A","C#"]},   {degree:"IIImaj7",name:"E major 7th",  notes:["E","G#","B","D#"]},    {degree:"iv7",  name:"F# minor 7th",   notes:["F#","A","C#","E"]},    {degree:"V7",    name:"G# dominant 7th",notes:["G#","B#","D#","F#"]},  {degree:"VImaj7",name:"A major 7th",    notes:["A","C#","E","G#"]},    {degree:"VII7",  name:"B dominant 7th", notes:["B","D#","F#","A"]}]},
+      {key:"G#m", chords:[{degree:"im7",    name:"G# minor 7th",   notes:["G#","B","D#","F#"]},   {degree:"iiø7",  name:"A# half-diminished 7th", notes:["A#","C#","E","G#"]},   {degree:"IIImaj7",name:"B major 7th",  notes:["B","D#","F#","A#"]},   {degree:"iv7",  name:"C# minor 7th",   notes:["C#","E","G#","B"]},    {degree:"V7",    name:"D# dominant 7th",notes:["D#","F##","A#","C#"]}, {degree:"VImaj7",name:"E major 7th",    notes:["E","G#","B","D#"]},    {degree:"VII7",  name:"F# dominant 7th",notes:["F#","A#","C#","E"]}]},
+      {key:"Dm",  chords:[{degree:"im7",    name:"D minor 7th",    notes:["D","F","A","C"]},      {degree:"iiø7",  name:"E half-diminished 7th",  notes:["E","G","Bb","D"]},     {degree:"IIImaj7",name:"F major 7th",  notes:["F","A","C","E"]},      {degree:"iv7",  name:"G minor 7th",    notes:["G","Bb","D","F"]},     {degree:"V7",    name:"A dominant 7th", notes:["A","C#","E","G"]},     {degree:"VImaj7",name:"Bb major 7th",   notes:["Bb","D","F","A"]},     {degree:"VII7",  name:"C dominant 7th", notes:["C","E","G","Bb"]}]},
+      {key:"Gm",  chords:[{degree:"im7",    name:"G minor 7th",    notes:["G","Bb","D","F"]},     {degree:"iiø7",  name:"A half-diminished 7th",  notes:["A","C","Eb","G"]},     {degree:"IIImaj7",name:"Bb major 7th", notes:["Bb","D","F","A"]},     {degree:"iv7",  name:"C minor 7th",    notes:["C","Eb","G","Bb"]},    {degree:"V7",    name:"D dominant 7th", notes:["D","F#","A","C"]},     {degree:"VImaj7",name:"Eb major 7th",   notes:["Eb","G","Bb","D"]},    {degree:"VII7",  name:"F dominant 7th", notes:["F","A","C","Eb"]}]},
+      {key:"Cm",  chords:[{degree:"im7",    name:"C minor 7th",    notes:["C","Eb","G","Bb"]},    {degree:"iiø7",  name:"D half-diminished 7th",  notes:["D","F","Ab","C"]},     {degree:"IIImaj7",name:"Eb major 7th", notes:["Eb","G","Bb","D"]},    {degree:"iv7",  name:"F minor 7th",    notes:["F","Ab","C","Eb"]},    {degree:"V7",    name:"G dominant 7th", notes:["G","B","D","F"]},      {degree:"VImaj7",name:"Ab major 7th",   notes:["Ab","C","Eb","G"]},    {degree:"VII7",  name:"Bb dominant 7th",notes:["Bb","D","F","Ab"]}]},
+      {key:"Fm",  chords:[{degree:"im7",    name:"F minor 7th",    notes:["F","Ab","C","Eb"]},    {degree:"iiø7",  name:"G half-diminished 7th",  notes:["G","Bb","Db","F"]},    {degree:"IIImaj7",name:"Ab major 7th", notes:["Ab","C","Eb","G"]},    {degree:"iv7",  name:"Bb minor 7th",   notes:["Bb","Db","F","Ab"]},   {degree:"V7",    name:"C dominant 7th", notes:["C","E","G","Bb"]},     {degree:"VImaj7",name:"Db major 7th",   notes:["Db","F","Ab","C"]},    {degree:"VII7",  name:"Eb dominant 7th",notes:["Eb","G","Bb","Db"]}]},
+      {key:"Bbm", chords:[{degree:"im7",    name:"Bb minor 7th",   notes:["Bb","Db","F","Ab"]},   {degree:"iiø7",  name:"C half-diminished 7th",  notes:["C","Eb","Gb","Bb"]},   {degree:"IIImaj7",name:"Db major 7th", notes:["Db","F","Ab","C"]},    {degree:"iv7",  name:"Eb minor 7th",   notes:["Eb","Gb","Bb","Db"]},  {degree:"V7",    name:"F dominant 7th", notes:["F","A","C","Eb"]},     {degree:"VImaj7",name:"Gb major 7th",   notes:["Gb","Bb","Db","F"]},   {degree:"VII7",  name:"Ab dominant 7th",notes:["Ab","C","Eb","Gb"]}]},
+      {key:"Ebm", chords:[{degree:"im7",    name:"Eb minor 7th",   notes:["Eb","Gb","Bb","Db"]},  {degree:"iiø7",  name:"F half-diminished 7th",  notes:["F","Ab","Cb","Eb"]},   {degree:"IIImaj7",name:"Gb major 7th", notes:["Gb","Bb","Db","F"]},   {degree:"iv7",  name:"Ab minor 7th",   notes:["Ab","Cb","Eb","Gb"]},  {degree:"V7",    name:"Bb dominant 7th",notes:["Bb","D","F","Ab"]},    {degree:"VImaj7",name:"Cb major 7th",   notes:["Cb","Eb","Gb","Bb"]},  {degree:"VII7",  name:"Db dominant 7th",notes:["Db","F","Ab","Cb"]}]},
+    ]
+  }
+};
+
+const CHORD_TYPE = name => {
+  if (name.includes('half-diminished')) return 'half-diminished';
+  if (name.includes('diminished'))      return 'diminished';
+  if (name.includes('dominant'))        return 'dominant';
+  if (name.includes('minor 7th'))       return 'minor7';
+  if (name.includes('major 7th'))       return 'major7';
+  if (name.includes('minor'))           return 'minor';
+  return 'major';
+};
+
+const ACCENT = {
+  major:'#ff2d78', minor:'#00d4ff', diminished:'#ff9100', dominant:'#39ff14',
+  'half-diminished':'#bf5fff', major7:'#ff2d78', minor7:'#00d4ff'
+};
+
+const shortName = name => {
+  if (name.includes('half-diminished 7th')) return name.replace(' half-diminished 7th','ø7');
+  if (name.includes('major 7th'))           return name.replace(' major 7th','maj7');
+  if (name.includes('minor 7th'))           return name.replace(' minor 7th','m7');
+  if (name.includes('dominant 7th'))        return name.replace(' dominant 7th','7');
+  if (name.includes('diminished'))          return name.replace(' diminished','°');
+  if (name.includes(' minor'))              return name.replace(' minor','m');
+  if (name.includes(' major'))              return name.replace(' major','');
+  return name;
+};
+
+const MAJOR_DEG_T = ['I','ii','iii','IV','V','vi','vii°'];
+const MINOR_DEG_T = ['i','ii°','III','iv','V','VI','VII'];
+const MAJOR_DEG_7 = ['Imaj7','ii7','iii7','IVmaj7','V7','vi7','viiø7'];
+const MINOR_DEG_7 = ['im7','iiø7','IIImaj7','iv7','V7','VImaj7','VII7'];
+const DEGREE_FULL = [
+  'טוניקה (Tonic)','סופר-טוניקה (Supertonic)','מדיאנטה (Mediant)',
+  'סוב-דומיננטה (Subdominant)','דומיננטה (Dominant)',
+  'סוב-מדיאנטה (Submediant)','טון מוביל (Leading Tone)'
+];
+
+const LEGENDS = {
+  triads:   [{color:'var(--pink)',label:'Major'},{color:'var(--cyan)',label:'Minor'},{color:'var(--orange)',label:'Dim'}],
+  sevenths: [{color:'var(--pink)',label:'maj7'},{color:'var(--cyan)',label:'m7'},{color:'var(--lime)',label:'dom7'},{color:'var(--purple)',label:'ø7'}]
+};
+
+let currentMode  = 'major';
+let currentCtype = 'triads';
+let activeBtn    = null;
+
+const tableArea   = document.getElementById('tableArea');
+const detailCard  = document.getElementById('detailCard');
+const detailEmpty = document.getElementById('detailEmpty');
+const detailContent=document.getElementById('detailContent');
+const dpChord     = document.getElementById('dpChord');
+const dpKey       = document.getElementById('dpKey');
+const dpDegree    = document.getElementById('dpDegree');
+const dpNotes     = document.getElementById('dpNotes');
+const legend      = document.getElementById('legend');
+const modeToggle  = document.getElementById('modeToggle');
+const modeTrack   = document.getElementById('modeTrack');
+const chordToggle = document.getElementById('chordToggle');
+const chordTrack  = document.getElementById('chordTrack');
+
+function getDegrees() {
+  if (currentCtype === 'triads')
+    return currentMode === 'major' ? MAJOR_DEG_T : MINOR_DEG_T;
+  return currentMode === 'major' ? MAJOR_DEG_7 : MINOR_DEG_7;
+}
+
+function renderLegend() {
+  legend.innerHTML = LEGENDS[currentCtype].map(({color,label}) =>
+    `<div class="legend-item"><div class="legend-dot" style="background:${color}"></div>${label}</div>`
+  ).join('');
+}
+
+function renderTable() {
+  const keys    = DATA[currentCtype][currentMode];
+  const degrees = getDegrees();
+
+  tableArea.innerHTML = `
+  <table>
+    <thead>
+      <tr>
+        <th>סולם</th>
+        ${degrees.map(d => `<th>${d}</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      ${keys.map((kd, ri) => `
+        <tr style="--ri:${ri}">
+          <td class="key-cell">${kd.key}</td>
+          ${kd.chords.map(ch => {
+            const type = CHORD_TYPE(ch.name);
+            return `<td class="chord-cell">
+              <button class="chord-btn" data-type="${type}"
+                data-key="${kd.key}" data-name="${ch.name}"
+                data-degree="${ch.degree}" data-notes="${ch.notes.join(',')}">
+                <span class="cb-name">${shortName(ch.name)}</span>
+              </button>
+            </td>`;
+          }).join('')}
+        </tr>`).join('')}
+    </tbody>
+  </table>`;
+
+  tableArea.querySelectorAll('.chord-btn').forEach(btn =>
+    btn.addEventListener('click', e => handleClick(e, btn))
+  );
+}
+
+function handleClick(e, btn) {
+  createRipple(e, btn);
+  if (activeBtn === btn) {
+    btn.classList.remove('active');
+    activeBtn = null;
+    showEmpty();
+    return;
+  }
+  if (activeBtn) activeBtn.classList.remove('active');
+  activeBtn = btn;
+  btn.classList.add('active');
+
+  const type   = btn.dataset.type;
+  const accent = ACCENT[type] || '#ff2d78';
+  const notes  = btn.dataset.notes.split(',');
+  const degrees = getDegrees();
+
+  detailCard.style.setProperty('--dp-accent', accent);
+  dpChord.textContent = btn.dataset.name;
+  dpKey.textContent   = `סולם: ${btn.dataset.key} ${currentMode === 'major' ? 'Major' : 'Minor'} — ${currentCtype === 'triads' ? 'טריאד' : 'אקורד שביעי'}`;
+  const di = degrees.indexOf(btn.dataset.degree);
+  dpDegree.textContent = `${btn.dataset.degree} — ${di >= 0 ? DEGREE_FULL[di] : ''}`;
+
+  dpNotes.innerHTML = '';
+  notes.forEach((n, ni) => {
+    const p = document.createElement('span');
+    p.className = 'note-pill';
+    p.textContent = n;
+    p.style.setProperty('--ni', ni);
+    dpNotes.appendChild(p);
+    requestAnimationFrame(() => requestAnimationFrame(() => p.classList.add('show')));
+  });
+
+  detailEmpty.style.display  = 'none';
+  detailContent.style.display = 'block';
+}
+
+function showEmpty() {
+  detailEmpty.style.display  = '';
+  detailContent.style.display = 'none';
+}
+
+function createRipple(e, el) {
+  const r = document.createElement('span');
+  r.className = 'ripple';
+  const rect = el.getBoundingClientRect();
+  const s = Math.max(rect.width, rect.height);
+  r.style.cssText = `width:${s}px;height:${s}px;left:${e.clientX-rect.left-s/2}px;top:${e.clientY-rect.top-s/2}px`;
+  el.appendChild(r);
+  setTimeout(() => r.remove(), 520);
+}
+
+function hideDetail() {
+  activeBtn = null;
+  showEmpty();
+}
+
+function exitPracticeIfOpen() {
+  if (practiceOverlay.style.display !== 'none' && practiceOverlay.style.display !== '') {
+    demoCancelAll();
+    simReleaseAll();
+    prac.demoMode = false;
+    pracDemoBadge.style.display = 'none';
+    clearHintTimer();
+    clearTimeout(prac.resetTimer);
+    prac.resetTimer = null;
+    prac.locked = false;
+    prac.held.clear();
+    prac.notesAtStart.clear();
+    practiceOverlay.classList.remove('prac-wrong', 'prac-correct');
+    practiceOverlay.style.display = 'none';
+  }
+}
+
+modeToggle.addEventListener('click', () => {
+  exitPracticeIfOpen();
+  currentMode = currentMode === 'major' ? 'minor' : 'major';
+  modeToggle.dataset.mode = currentMode;
+  modeTrack.classList.toggle('on', currentMode === 'minor');
+  document.body.classList.toggle('minor-mode', currentMode === 'minor');
+  hideDetail();
+  renderLegend();
+  renderTable();
+});
+
+chordToggle.addEventListener('click', () => {
+  exitPracticeIfOpen();
+  currentCtype = currentCtype === 'triads' ? 'sevenths' : 'triads';
+  chordToggle.dataset.ctype = currentCtype;
+  chordTrack.classList.toggle('on', currentCtype === 'sevenths');
+  hideDetail();
+  renderLegend();
+  renderTable();
+});
+
+renderLegend();
+renderTable();
+
+// ════════════════════════════════════════════════════════════════
+//  PRACTICE MODE
+// ════════════════════════════════════════════════════════════════
+
+// ── Pitch-class lookup (handles double-sharps, flats, enharmonics) ──
+const PC_MAP = {
+  'C':0,'B#':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'Fb':4,
+  'F':5,'E#':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,
+  'A#':10,'Bb':10,'B':11,'Cb':11,
+  'B##':1,'C##':2,'D##':4,'E##':6,'F##':7,'G##':9,'A##':11,
+};
+
+function noteNameToPC(name) {
+  return PC_MAP[name] ?? (PC_MAP[name.replace('##','').replace('#','').replace('b','')] ?? 0);
+}
+
+// ── MIDI note number → display name (C4 = middle C = MIDI 60) ──
+const MIDI_NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function midiNoteToName(n) {
+  return MIDI_NOTE_NAMES[n % 12] + (Math.floor(n / 12) - 1);
+}
+
+// ── DOM refs ──
+const practiceOverlay  = document.getElementById('practiceOverlay');
+const pracMidiScreen   = document.getElementById('pracMidiScreen');
+const pracMidiDesc     = document.getElementById('pracMidiDesc');
+const pracRequestMidi  = document.getElementById('pracRequestMidi');
+const pracMidiErr      = document.getElementById('pracMidiErr');
+const pracDeviceList   = document.getElementById('pracDeviceList');
+const pracDeviceCards  = document.getElementById('pracDeviceCards');
+const pracTopbar       = document.getElementById('pracTopbar');
+const pracMain         = document.getElementById('pracMain');
+const pracProgressTxt  = document.getElementById('pracProgressTxt');
+const pracModeBadge    = document.getElementById('pracModeBadge');
+const pracExitBtn      = document.getElementById('pracExitBtn');
+const pracKeyLabel     = document.getElementById('pracKeyLabel');
+const pracKeyName      = document.getElementById('pracKeyName');
+const pracSeq          = document.getElementById('pracSeq');
+const pracChordBig     = document.getElementById('pracChordBig');
+const pracStatus       = document.getElementById('pracStatus');
+const pracHint         = document.getElementById('pracHint');
+const pracHintBarWrap  = document.getElementById('pracHintBarWrap');
+const pracHintBar      = document.getElementById('pracHintBar');
+const pracDoneScreen   = document.getElementById('pracDoneScreen');
+const pracDoneDesc     = document.getElementById('pracDoneDesc');
+const pracDoneStats    = document.getElementById('pracDoneStats');
+const pracDoneChartWrap= document.getElementById('pracDoneChartWrap');
+const pracDoneChart    = document.getElementById('pracDoneChart');
+const pracRestartBtn   = document.getElementById('pracRestartBtn');
+const openPracticeBtn  = document.getElementById('openPracticeBtn');
+const velRows          = document.getElementById('velRows');
+const pracScopeRow     = document.getElementById('pracScopeRow');
+const scopeAllBtn      = document.getElementById('scopeAllBtn');
+const scopeSingleBtn   = document.getElementById('scopeSingleBtn');
+const pracKeyPicker    = document.getElementById('pracKeyPicker');
+const pracKeyPickerGrid= document.getElementById('pracKeyPickerGrid');
+const pracMidiBtnRow   = document.getElementById('pracMidiBtnRow');
+
+// ── Practice state ──
+const prac = {
+  midiAccess: null,
+  selectedInputId: null,
+  held: new Set(),
+  notesAtStart: new Set(),
+  keyIdx: 0,
+  chordIdx: 0,
+  hintTimer: null,
+  hintBarTimer: null,
+  resetTimer: null,
+  hintShown: false,
+  locked: false,
+  startTime: null,
+  mistakeCount: 0,
+  // per-key mistake tracking (array indexed by keyIdx within the active set)
+  keyMistakes: [],
+  // chord timing
+  chordStartTime: null,
+  totalChordTime: 0,
+  totalChordsPlayed: 0,
+  // scope
+  scope: 'all',       // 'all' | 'single'
+  singleKeyIdx: 0,
+  // demo
+  demoMode: false,
+  demoTimers: [],
+  demoJustRetrying: false,
+};
+
+const HINT_DELAY = 7000;
+
+// ════════════════════════════════════════════
+//  VELOCITY PANEL
+// ════════════════════════════════════════════
+let velUid = 0;
+const velEntries = [];   // {uid, note, vel, releasedAt, el}
+const VEL_LINGER = 3000;
+
+function velNoteOn(note, velocity) {
+  const vp  = velocity / 127;
+  const val = (vp * 10).toFixed(1);
+
+  // ── FLIP: snapshot existing rows' Y positions BEFORE DOM change ──
+  const existing = Array.from(velRows.children);
+  const oldTops  = existing.map(el => el.getBoundingClientRect().top);
+
+  // ── Append new row (triggers reflow — existing rows shift up) ──
+  const el = document.createElement('div');
+  el.className = 'vel-row';
+  el.style.setProperty('--vp', vp.toFixed(3));
+  el.innerHTML =
+    `<span class="vel-note-name">${midiNoteToName(note)}</span>` +
+    `<span class="vel-bar-wrap"><span class="vel-bar"></span></span>` +
+    `<span class="vel-val">${val}</span>`;
+  velRows.appendChild(el);
+  velEntries.push({ uid: velUid++, note, vel: velocity, releasedAt: null, el });
+
+  // ── FLIP: animate existing rows from old → new position ──
+  existing.forEach((row, i) => {
+    const newTop = row.getBoundingClientRect().top;
+    const dy = oldTops[i] - newTop; // positive = row moved up
+    if (Math.abs(dy) < 1) return;
+    row.animate(
+      [{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }],
+      { duration: 160, easing: 'cubic-bezier(0.22,1,0.36,1)', fill: 'none' }
+    );
+  });
+
+  // ── New row: enter from below ──
+  // Use fill:'forwards' + cancel after finish so CSS opacity transitions
+  // (e.g. .released → 0.38) are not blocked by the animation fill effect.
+  const entranceAnim = el.animate(
+    [
+      { opacity: '0', transform: 'translateY(28px)' },
+      { opacity: '1', transform: 'translateY(0)' }
+    ],
+    { duration: 200, delay: 60, easing: 'cubic-bezier(0.22,1,0.36,1)', fill: 'forwards' }
+  );
+  entranceAnim.finished.then(() => {
+    el.style.opacity = '1'; // commit final opacity to inline style
+    entranceAnim.cancel();  // remove fill effect so CSS .released transition works
+  }).catch(() => {}); // ignore AbortError if element removed before finish
+}
+
+function velNoteOff(note) {
+  for (let i = velEntries.length - 1; i >= 0; i--) {
+    if (velEntries[i].note === note && velEntries[i].releasedAt === null) {
+      velEntries[i].releasedAt = Date.now();
+      velEntries[i].el.classList.add('released');
+      break;
+    }
+  }
+}
+
+function velPrune() {
+  const now = Date.now();
+  for (let i = velEntries.length - 1; i >= 0; i--) {
+    if (velEntries[i].releasedAt !== null && now - velEntries[i].releasedAt >= VEL_LINGER) {
+      const row      = velEntries[i].el;
+      const siblings = Array.from(velRows.children).filter(el => el !== row);
+      const oldTops  = siblings.map(el => el.getBoundingClientRect().top);
+
+      row.remove();
+      velEntries.splice(i, 1);
+
+      // FLIP: siblings below the removed row shift up — animate them settling
+      siblings.forEach((el, j) => {
+        const newTop = el.getBoundingClientRect().top;
+        const dy = oldTops[j] - newTop;
+        if (Math.abs(dy) < 1) return;
+        el.animate(
+          [{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }],
+          { duration: 220, easing: 'cubic-bezier(0.22,1,0.36,1)', fill: 'none' }
+        );
       });
+    }
+  }
+}
+
+let velPruneInterval = null;
+function startVelPrune() { if (!velPruneInterval) velPruneInterval = setInterval(velPrune, 120); }
+function stopVelPrune()  { clearInterval(velPruneInterval); velPruneInterval = null; }
+function clearVelPanel() { velEntries.forEach(e => e.el.remove()); velEntries.length = 0; }
+
+// ════════════════════════════════════════════
+//  MIDI DEVICE SELECTION
+// ════════════════════════════════════════════
+function buildDeviceCards(inputs) {
+  pracDeviceCards.innerHTML = '';
+  [...inputs.values()].forEach(input => {
+    const card = document.createElement('div');
+    card.className = 'prac-device-card';
+    card.innerHTML =
+      `<span class="prac-device-icon">🎹</span>` +
+      `<span class="prac-device-name">${input.name}</span>` +
+      `<span class="prac-device-connect">חבר →</span>`;
+    card.addEventListener('click', () => {
+      prac.selectedInputId = input.id;
+      attachMidiListeners();
+      startPractice();
+    });
+    pracDeviceCards.appendChild(card);
+  });
+}
+
+// Returns the array of keys that are active in this session
+// In 'single' mode: a one-element array containing the chosen key
+function getPracKeys() {
+  const all = DATA[currentCtype][currentMode];
+  return prac.scope === 'single' ? [all[prac.singleKeyIdx]] : all;
+}
+function getPracKeyData() { return getPracKeys()[prac.keyIdx]; }
+function getSeqChords()   {
+  const kd = getPracKeyData();
+  return [...kd.chords, {...kd.chords[0], isRepeatI: true}];
+}
+function getCurrentTarget() { return getSeqChords()[prac.chordIdx]; }
+
+// ── Open practice overlay ──
+// ── Build key-picker grid ──
+function buildKeyPickerGrid() {
+  const all = DATA[currentCtype][currentMode];
+  const accentVar = currentMode === 'major' ? 'var(--pink)' : 'var(--cyan)';
+  pracKeyPickerGrid.innerHTML = '';
+  all.forEach((kd, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'key-pick-btn' + (idx === prac.singleKeyIdx ? ' active' : '');
+    btn.textContent = kd.key + (currentMode === 'minor' ? 'm' : '');
+    btn.addEventListener('click', () => {
+      prac.singleKeyIdx = idx;
+      pracKeyPickerGrid.querySelectorAll('.key-pick-btn').forEach((b, i) =>
+        b.classList.toggle('active', i === idx));
+    });
+    pracKeyPickerGrid.appendChild(btn);
+  });
+  pracKeyPicker.style.setProperty('--prac-key-col', accentVar);
+}
+
+openPracticeBtn.addEventListener('click', () => {
+  practiceOverlay.style.display = 'flex';
+  pracDoneScreen.classList.remove('show');
+  practiceOverlay.style.setProperty('--prac-key-col',
+    currentMode === 'major' ? 'var(--pink)' : 'var(--cyan)');
+  if (prac.midiAccess) {
+    pracMidiScreen.style.display = 'none';
+    pracTopbar.style.display     = 'flex';
+    pracMain.style.display       = 'flex';
+    startPractice();
+  } else {
+    pracMidiScreen.style.display = 'flex';
+    pracTopbar.style.display     = 'none';
+    pracMain.style.display       = 'none';
+    // show scope row; reset to 'all'
+    prac.scope = 'all';
+    scopeAllBtn.classList.add('active');
+    scopeSingleBtn.classList.remove('active');
+    pracKeyPicker.style.display = 'none';
+    pracScopeRow.style.display  = 'flex';
+    buildKeyPickerGrid();
+  }
+});
+
+// ── Scope buttons ──
+scopeAllBtn.addEventListener('click', () => {
+  prac.scope = 'all';
+  scopeAllBtn.classList.add('active');
+  scopeSingleBtn.classList.remove('active');
+  pracKeyPicker.style.display = 'none';
+});
+scopeSingleBtn.addEventListener('click', () => {
+  prac.scope = 'single';
+  scopeSingleBtn.classList.add('active');
+  scopeAllBtn.classList.remove('active');
+  buildKeyPickerGrid();
+  pracKeyPicker.style.display = '';
+});
+
+// ── Request MIDI ──
+pracRequestMidi.addEventListener('click', async () => {
+  pracMidiErr.style.display = 'none';
+  pracDeviceList.classList.remove('show');
+  if (!navigator.requestMIDIAccess) {
+    pracMidiErr.textContent = '⚠ הדפדפן שלך אינו תומך ב-Web MIDI API. נסה Chrome או Edge.';
+    pracMidiErr.style.display = 'block';
+    return;
+  }
+  try {
+    prac.midiAccess = await navigator.requestMIDIAccess();
+    const inputs = [...prac.midiAccess.inputs.values()];
+    if (inputs.length === 0) {
+      pracMidiErr.textContent = '⚠ לא נמצאו מכשירי MIDI. חבר מקלדת ונסה שוב.';
+      pracMidiErr.style.display = 'block';
+      prac.midiAccess = null;
+      return;
+    }
+    if (inputs.length === 1) {
+      prac.selectedInputId = inputs[0].id;
+      attachMidiListeners();
+      startPractice();
+    } else {
+      pracRequestMidi.style.display = 'none';
+      pracMidiDesc.textContent = `נמצאו ${inputs.length} מכשירי MIDI. בחר את המכשיר לתרגול:`;
+      buildDeviceCards(prac.midiAccess.inputs);
+      pracDeviceList.classList.add('show');
+    }
+  } catch (e) {
+    pracMidiErr.textContent = '⚠ גישה ל-MIDI נדחתה. אנא אשר גישה בדפדפן ונסה שוב.';
+    pracMidiErr.style.display = 'block';
+  }
+});
+
+function attachMidiListeners() {
+  for (const input of prac.midiAccess.inputs.values()) {
+    input.onmidimessage = (!prac.selectedInputId || input.id === prac.selectedInputId)
+      ? handleMidi : null;
+  }
+  prac.midiAccess.onstatechange = () => {
+    for (const input of prac.midiAccess.inputs.values()) {
+      input.onmidimessage = (!prac.selectedInputId || input.id === prac.selectedInputId)
+        ? handleMidi : null;
+    }
+  };
+}
+
+function handleMidi(event) {
+  if (!prac.midiAccess) return;
+  const [status, note, velocity] = event.data;
+  const cmd = status & 0xf0;
+  if (cmd === 0x90 && velocity > 0) {
+    prac.held.add(note);
+    velNoteOn(note, velocity);
+    if (!prac.locked) checkChord();
+  } else if (cmd === 0x80 || (cmd === 0x90 && velocity === 0)) {
+    prac.held.delete(note);
+    prac.notesAtStart.delete(note);
+    velNoteOff(note);
+  }
+}
+
+// ── Start / restart full practice session ──
+function startPractice() {
+  demoCancelAll();
+  simReleaseAll();
+  prac.demoJustRetrying = false;
+  prac.keyIdx = 0;
+  prac.startTime = Date.now();
+  prac.mistakeCount = 0;
+  prac.held.clear();
+  prac.notesAtStart.clear();
+  prac.locked = false;
+  // tracking
+  const keys = getPracKeys();
+  prac.keyMistakes      = new Array(keys.length).fill(0);
+  prac.totalChordTime   = 0;
+  prac.totalChordsPlayed= 0;
+  prac.chordStartTime   = null;
+
+  pracMidiScreen.style.display = 'none';
+  pracTopbar.style.display     = 'flex';
+  pracMain.style.display       = 'flex';
+  pracDoneScreen.classList.remove('show');
+  clearVelPanel();
+  startVelPrune();
+
+  const modeStr = currentMode === 'major' ? 'Major' : 'Minor';
+  const typeStr = currentCtype === 'triads' ? 'Triads' : '7th Chords';
+  const scopeStr = prac.scope === 'single'
+    ? ` · ${keys[0].key}` : '';
+  pracModeBadge.textContent = `${modeStr} · ${typeStr}${scopeStr}`;
+
+  practiceOverlay.style.setProperty('--prac-key-col',
+    currentMode === 'major' ? 'var(--pink)' : 'var(--cyan)');
+
+  startKey(0);
+}
+
+function startKey(ki) {
+  prac.keyIdx    = ki;
+  prac.chordIdx  = 0;
+  prac.held.clear();
+  prac.notesAtStart.clear();
+  clearHintTimer();
+
+  const keys = getPracKeys();
+  pracProgressTxt.textContent = `סולם ${ki + 1} מתוך ${keys.length}`;
+
+  const kd = getPracKeyData();
+  pracKeyName.textContent = kd.key + ' ' + (currentMode === 'major' ? 'Major' : 'Minor');
+  // Double rAF: first frame commits animation:none, second re-applies it
+  pracKeyLabel.style.animation = 'none';
+  requestAnimationFrame(() => requestAnimationFrame(() => { pracKeyLabel.style.animation = ''; }));
+
+  renderSeq();
+  showCurrentChord();
+}
+
+function renderSeq() {
+  const seq = getSeqChords();
+  pracSeq.innerHTML = seq.map((ch, i) => {
+    const isDone    = i < prac.chordIdx;
+    const isCurrent = i === prac.chordIdx;
+    const isRepeat  = i === 7;
+    const classes = ['prac-seq-chip',
+      isDone ? 'done' : '',
+      isCurrent ? 'current' : '',
+      isRepeat ? 'repeat-i' : ''
+    ].filter(Boolean).join(' ');
+    return `<div class="${classes}">
+      <span class="chip-degree">${isRepeat ? (currentMode === 'minor' ? 'i' : 'I') : ch.degree}</span>
+      <span class="chip-name">${shortName(ch.name)}</span>
+    </div>`;
+  }).join('');
+}
+
+function showCurrentChord() {
+  clearHintTimer();
+  prac.hintShown    = false;
+  prac.locked       = false;
+  prac.chordStartTime = Date.now();
+
+  // snapshot held notes — these will be ignored for matching
+  prac.notesAtStart = new Set(prac.held);
+
+  const target = getCurrentTarget();
+  const display = shortName(target.name);
+
+  pracChordBig.textContent = display;
+  pracChordBig.setAttribute('data-text', display);
+  // Double rAF: ensures class removal is rendered before re-adding triggers animation
+  pracChordBig.classList.remove('anim-in');
+  requestAnimationFrame(() => requestAnimationFrame(() => pracChordBig.classList.add('anim-in')));
+
+  setStatus('נגן את האקורד המסומן', '');
+  pracHint.classList.add('hidden');
+  pracHint.innerHTML = '';
+  pracHintBarWrap.classList.remove('visible');
+
+  // flash remove wrong/correct class
+  practiceOverlay.classList.remove('prac-wrong', 'prac-correct');
+
+  // start 7-second hint timer
+  startHintTimer();
+
+  // if demo mode is running, schedule a simulated play
+  if (prac.demoMode) {
+    demoCancelAll();
+    demoPlay();
+  }
+}
+
+function startHintTimer() {
+  // Reset bar with a forced reflow between removing and re-adding the transition
+  pracHintBarWrap.classList.add('visible');
+  pracHintBar.style.transition = 'none';
+  pracHintBar.style.transform  = 'scaleX(1)';
+  // Double rAF ensures the "no-transition reset" frame is committed before starting animation
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    pracHintBar.style.transition = `transform ${HINT_DELAY}ms linear`;
+    pracHintBar.style.transform  = 'scaleX(0)';
+  }));
+
+  prac.hintTimer = setTimeout(() => {
+    if (!prac.hintShown) showHint();
+  }, HINT_DELAY);
+}
+
+function clearHintTimer() {
+  clearTimeout(prac.hintTimer);
+  clearTimeout(prac.hintBarTimer);
+  pracHintBarWrap.classList.remove('visible');
+  pracHintBar.style.transition = 'none';
+  pracHintBar.style.transform  = 'scaleX(1)';
+}
+
+function showHint() {
+  prac.hintShown = true;
+  const target = getCurrentTarget();
+  pracHint.innerHTML = target.notes.map((n, i) =>
+    `<span class="prac-hint-pill" style="--ni:${i}">${n}</span>`
+  ).join('');
+  pracHint.classList.remove('hidden');
+  setStatus('הנה תווי האקורד — נסה לנגן אותם', 'hint');
+}
+
+function setStatus(msg, cls = '') {
+  pracStatus.textContent = msg;
+  pracStatus.className   = 'prac-status' + (cls ? ' ' + cls : '');
+}
+
+// ── Chord matching ──
+function checkChord() {
+  const target    = getCurrentTarget();
+  const targetPCs = target.notes.map(noteNameToPC);
+  const chordSize = targetPCs.length; // 3 for triads, 4 for sevenths
+
+  // active pitch-classes = held notes that were NOT held when chord was shown
+  const activePCs = new Set();
+  for (const n of prac.held) {
+    if (!prac.notesAtStart.has(n)) activePCs.add(n % 12);
+  }
+
+  // need at least chordSize new notes before judging
+  if (activePCs.size < chordSize) return;
+
+  const correct = targetPCs.every(pc => activePCs.has(pc));
+  if (correct) {
+    onCorrect();
+  } else {
+    onWrong();
+  }
+}
+
+function onCorrect() {
+  prac.locked = true;
+  // record chord time
+  if (prac.chordStartTime) {
+    prac.totalChordTime += Date.now() - prac.chordStartTime;
+    prac.totalChordsPlayed++;
+    prac.chordStartTime = null;
+  }
+  clearHintTimer();
+  clearTimeout(prac.resetTimer);
+  practiceOverlay.classList.remove('prac-wrong');
+  practiceOverlay.classList.add('prac-correct');
+
+  const seq = getSeqChords();
+  const isLast = prac.chordIdx === seq.length - 1;
+
+  if (isLast) {
+    setStatus('✓ סולם הושלם! 🎉', 'ok');
+    renderSeq();
+
+    prac.resetTimer = setTimeout(() => {
+      const keys = getPracKeys();
+      if (prac.keyIdx + 1 >= keys.length) {
+        showDone();
+      } else {
+        startKey(prac.keyIdx + 1);
+      }
+    }, 900);
+  } else {
+    setStatus('✓ נכון!', 'ok');
+    prac.chordIdx++;
+    renderSeq();
+    prac.resetTimer = setTimeout(() => showCurrentChord(), 500);
+  }
+}
+
+function onWrong() {
+  if (prac.demoMode) { prac.demoJustRetrying = true; demoCancelAll(); simReleaseAll(); }
+  prac.locked = true;
+  prac.mistakeCount++;
+  // per-key mistake counter
+  if (prac.keyMistakes && prac.keyIdx < prac.keyMistakes.length)
+    prac.keyMistakes[prac.keyIdx]++;
+  prac.chordStartTime = null; // reset chord timer — will restart at showCurrentChord
+  clearHintTimer();
+  clearTimeout(prac.resetTimer);
+  practiceOverlay.classList.remove('prac-correct');
+  practiceOverlay.classList.add('prac-wrong');
+
+  setStatus('✗ לא נכון — חוזרים לתחילת הסולם', 'err');
+
+  prac.resetTimer = setTimeout(() => {
+    // restart key from degree I
+    prac.chordIdx = 0;
+    prac.held.clear();
+    prac.notesAtStart.clear();
+    renderSeq();
+    showCurrentChord();
+  }, 1200);
+}
+
+function showDone() {
+  const elapsed  = Math.round((Date.now() - prac.startTime) / 1000);
+  const mins     = Math.floor(elapsed / 60);
+  const secs     = elapsed % 60;
+  const timeStr  = mins > 0 ? `${mins}:${String(secs).padStart(2,'0')}` : `0:${String(secs).padStart(2,'0')}`;
+  const keys     = getPracKeys();
+  const modeStr  = currentMode === 'major' ? 'Major' : 'Minor';
+  const typeStr  = currentCtype === 'triads' ? 'טריאדות' : 'אקורדים שביעיים';
+
+  // totals
+  const totalCorrect  = prac.totalChordsPlayed;
+  const totalAttempts = totalCorrect + prac.mistakeCount;
+  const pctSuccess    = totalAttempts > 0
+    ? Math.round((totalCorrect / totalAttempts) * 100) : 100;
+  const avgMs  = totalCorrect > 0 ? prac.totalChordTime / totalCorrect : 0;
+  const avgSec = (avgMs / 1000).toFixed(1);
+
+  // description line
+  const scopeDesc = prac.scope === 'single'
+    ? `סולם ${keys[0].key} ${modeStr} (${typeStr})`
+    : `${keys.length} סולמות ${modeStr} (${typeStr})`;
+  pracDoneDesc.textContent =
+    `${scopeDesc} · ${timeStr}` +
+    (prac.mistakeCount === 0 ? ' · ללא טעויות! 🎯' : '');
+
+  // stat pills
+  const stats = [
+    { val: timeStr,         lbl: 'זמן כולל' },
+    { val: totalCorrect,    lbl: 'אקורדים' },
+    { val: `${pctSuccess}%`,lbl: 'הצלחה' },
+    { val: `${avgSec}ש`,    lbl: 'ממוצע/אקורד' },
+    { val: prac.mistakeCount, lbl: 'טעויות' },
+  ];
+  pracDoneStats.innerHTML = stats.map((s, i) =>
+    `<div class="prac-stat-pill" style="--si:${i}">
+       <span class="prac-stat-val">${s.val}</span>
+       <span class="prac-stat-lbl">${s.lbl}</span>
+     </div>`
+  ).join('');
+
+  // bar chart (only if more than 1 key and any mistakes)
+  const km = prac.keyMistakes || [];
+  const hasChart = keys.length > 1;
+  pracDoneChartWrap.style.display = hasChart ? '' : 'none';
+  if (hasChart) {
+    const maxM = Math.max(...km, 1);
+    pracDoneChart.innerHTML = keys.map((kd, i) => {
+      const m   = km[i] || 0;
+      const pct = Math.round((m / maxM) * 100);
+      const lbl = kd.key + (currentMode === 'minor' ? 'm' : '');
+      return `<div class="chart-col" style="--ci:${i}">
+        <div class="chart-bar-wrap">
+          <div class="chart-bar ${m === 0 ? 'zero' : ''}" style="height:${Math.max(3, pct * 0.6)}px"></div>
+        </div>
+        <div class="chart-label" title="${lbl} — ${m} טעויות">${lbl}</div>
+      </div>`;
+    }).join('');
+  }
+
+  pracDoneScreen.classList.add('show');
+}
+
+pracRestartBtn.addEventListener('click', () => {
+  pracDoneScreen.classList.remove('show');
+  clearVelPanel();
+  if (prac.midiAccess) attachMidiListeners();
+  startPractice();
+});
+
+pracExitBtn.addEventListener('click', () => {
+  demoCancelAll();
+  simReleaseAll();
+  prac.demoMode = false;
+  pracDemoBadge.style.display = 'none';
+  clearHintTimer();
+  clearTimeout(prac.resetTimer);
+  prac.resetTimer = null;
+  prac.locked     = false;
+  prac.held.clear();
+  prac.notesAtStart.clear();
+  practiceOverlay.classList.remove('prac-wrong', 'prac-correct');
+  practiceOverlay.style.display = 'none';
+  stopVelPrune();
+  clearVelPanel();
+});
+
+// ════════════════════════════════════════════════════════
+//  DEMO MODE ENGINE
+// ════════════════════════════════════════════════════════
+
+const DEMO_MISTAKE_RATE = 0.02;
+
+// Note-name → MIDI number in comfortable playing range (C3–B5)
+function noteNameToMidi(name) {
+  const basePC = {C:0, D:2, E:4, F:5, G:7, A:9, B:11};
+  let pc = basePC[name[0]] ?? 0;
+  for (let i = 1; i < name.length; i++) {
+    if      (name[i] === '#') pc++;
+    else if (name[i] === 'b') pc--;
+  }
+  pc = ((pc % 12) + 12) % 12;
+  // anchor to octave 4 (C4=60), then nudge into range 48-72
+  let midi = pc + 60;
+  if (midi > 72) midi -= 12;
+  return midi;
+}
+
+// Box-Muller Gaussian
+function randGauss(mean, std) {
+  let u = 0, v = 0;
+  while (!u) u = Math.random();
+  while (!v) v = Math.random();
+  return mean + std * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+function randInt(lo, hi) { return Math.floor(Math.random() * (hi - lo + 1)) + lo; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function demoSchedule(fn, ms) {
+  const id = setTimeout(fn, Math.max(0, ms));
+  prac.demoTimers.push(id);
+  return id;
+}
+function demoCancelAll() {
+  (prac.demoTimers || []).forEach(clearTimeout);
+  prac.demoTimers = [];
+}
+
+// Simulate a single MIDI note-on/off pair
+function simNoteOn(midi, velocity) {
+  prac.held.add(midi);
+  velNoteOn(midi, velocity);
+  if (!prac.locked) checkChord();
+}
+function simNoteOff(midi) {
+  prac.held.delete(midi);
+  prac.notesAtStart.delete(midi);
+  velNoteOff(midi);
+}
+
+// Release all currently held simulated notes
+function simReleaseAll() {
+  [...prac.held].forEach(n => {
+    velNoteOff(n);
+    prac.held.delete(n);
+    prac.notesAtStart.delete(n);
+  });
+}
+
+// Called from showCurrentChord() when demo is active
+function demoPlay() {
+  if (!prac.demoMode || prac.locked) return;
+
+  const target    = getCurrentTarget();
+  const noteNames = target.notes;
+  const chordSize = noteNames.length;
+
+  // Decide: mistake this chord?
+  // Don't mistake on a retry (prac.demoJustRetrying)
+  const canMistake = !prac.demoJustRetrying;
+  prac.demoJustRetrying = false;
+  const makeMistake = canMistake && Math.random() < DEMO_MISTAKE_RATE;
+
+  // "Reading" reaction time before playing
+  const reactionMs = clamp(Math.round(randGauss(1000, 320)), 380, 2800);
+
+  // 40% arpeggio, 60% block chord
+  const isArpeggio = Math.random() < 0.40;
+
+  // Generate per-note velocities — arpeggio root slightly accented
+  function genVel(noteIdx) {
+    let base = clamp(Math.round(randGauss(70, 16)), 38, 112);
+    if (isArpeggio && noteIdx === 0) base = clamp(base + randInt(6, 18), 50, 120);
+    return base;
+  }
+
+  demoSchedule(() => {
+    if (!prac.demoMode || prac.locked) return;
+
+    // Build MIDI note list, optionally inject one wrong note
+    let midiNotes = noteNames.map(noteNameToMidi);
+    if (makeMistake) {
+      const badIdx   = randInt(0, chordSize - 1);
+      const shift    = Math.random() < 0.5 ? 1 : -1;
+      midiNotes      = [...midiNotes];
+      midiNotes[badIdx] = midiNotes[badIdx] + shift;
+    }
+
+    if (isArpeggio) {
+      // — ARPEGGIO — notes staggered, each released individually
+      const stagger  = clamp(Math.round(randGauss(115, 28)), 65, 210);
+      const holdNote = clamp(Math.round(randGauss(380, 80)), 200, 700);
+      midiNotes.forEach((midi, i) => {
+        const vel = genVel(i);
+        const t   = i * stagger;
+        demoSchedule(() => { if (!prac.demoMode) return; simNoteOn(midi, vel); }, t);
+        demoSchedule(() => { if (!prac.demoMode) return; simNoteOff(midi); },    t + holdNote);
+      });
+    } else {
+      // — BLOCK CHORD — near-simultaneous with tiny human jitter (0–30 ms)
+      const holdChord = clamp(Math.round(randGauss(560, 130)), 280, 950);
+      midiNotes.forEach((midi, i) => {
+        const jitter = randInt(0, 28);
+        const vel    = genVel(i);
+        demoSchedule(() => { if (!prac.demoMode) return; simNoteOn(midi, vel); }, jitter);
+        demoSchedule(() => { if (!prac.demoMode) return; simNoteOff(midi); },    jitter + holdChord);
+      });
+    }
+  }, reactionMs);
+}
+
+// Toggle demo mode
+const pracDemoEntryBtn = document.getElementById('pracDemoEntryBtn');
+const pracDemoBadge    = document.getElementById('pracDemoBadge');
+
+pracDemoEntryBtn.addEventListener('click', () => {
+  prac.demoMode         = true;
+  prac.demoJustRetrying = false;
+  prac.demoTimers       = [];
+  pracDemoBadge.style.display = '';
+  pracMidiScreen.style.display = 'none';
+  pracTopbar.style.display     = 'flex';
+  pracMain.style.display       = 'flex';
+  pracDoneScreen.classList.remove('show');
+  clearVelPanel();
+  startVelPrune();
+  startPractice();
+});
+
+
+</script>
+
+</body>
+</html>
     }
   }, reactionMs);
 }
