@@ -564,35 +564,65 @@
   }
   .prac-exit-btn:hover { border-color: var(--orange); color: var(--orange); }
 
-  .prac-demo-btn {
-    display: flex; align-items: center; gap: 0.4rem;
-    background: color-mix(in srgb, var(--purple) 12%, var(--bg3));
-    border: 1px solid color-mix(in srgb, var(--purple) 38%, transparent);
-    border-radius: 8px; padding: 0.4rem 0.8rem; cursor: pointer;
-    font-family: inherit; font-size: 0.72rem; font-weight: 600;
-    color: var(--purple); transition: background var(--tr), box-shadow var(--tr);
-    white-space: nowrap;
+  .prac-challenge-btn {
+    border-color: var(--orange);
+    color: var(--orange);
+    background: color-mix(in srgb, var(--orange) 10%, var(--bg3));
   }
-  .prac-demo-btn:hover {
-    background: color-mix(in srgb, var(--purple) 20%, var(--bg3));
-    box-shadow: 0 0 14px color-mix(in srgb, var(--purple) 22%, transparent);
-  }
-  .prac-demo-btn.active {
-    background: color-mix(in srgb, var(--purple) 22%, var(--bg3));
-    border-color: var(--purple);
-    box-shadow: 0 0 14px color-mix(in srgb, var(--purple) 28%, transparent);
+  .prac-challenge-btn:hover {
+    background: color-mix(in srgb, var(--orange) 18%, var(--bg3));
   }
 
-  .prac-demo-badge {
-    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em;
-    background: color-mix(in srgb, var(--purple) 18%, var(--bg3));
-    border: 1px solid color-mix(in srgb, var(--purple) 45%, transparent);
-    border-radius: 6px; padding: 0.2rem 0.65rem; color: var(--purple);
-    animation: demoBadgePulse 2.5s ease-in-out infinite;
+  .prac-topbar-btns {
+    display: flex; align-items: center; gap: 0.5rem;
   }
-  @keyframes demoBadgePulse {
-    0%,100% { opacity: 1; }
-    50%      { opacity: 0.6; }
+  .prac-pause-btn {
+    display: flex; align-items: center; gap: 0.4rem;
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 0.4rem 0.8rem; cursor: pointer;
+    font-family: inherit; font-size: 0.72rem; font-weight: 500; color: var(--text-sub);
+    transition: border-color var(--tr), color var(--tr), background var(--tr);
+    white-space: nowrap;
+  }
+  .prac-pause-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  .prac-pause-btn.paused {
+    border-color: var(--lime); color: var(--lime);
+    background: color-mix(in srgb, var(--lime) 10%, var(--bg3));
+  }
+  /* Pause overlay */
+  .prac-paused-overlay.show { display: flex; }
+  .prac-resume-btn:hover {
+    background: color-mix(in srgb, var(--lime) 24%, var(--bg3));
+    box-shadow: 0 0 20px color-mix(in srgb, var(--lime) 22%, transparent);
+  }
+
+  /* ── streak counter ── */
+  .prac-streak {
+    font-size: 0.78rem; font-weight: 700;
+    color: var(--lime);
+    letter-spacing: 0.04em;
+    margin-bottom: 0.15rem;
+    animation: streakPop 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes streakPop {
+    from { opacity:0; transform:scale(0.7) translateY(4px); }
+    to   { opacity:1; transform:none; }
+  }
+
+  /* ── key transition fade ── */
+  .prac-key-fade-out {
+    animation: keyFadeOut 0.22s ease forwards;
+  }
+  .prac-key-fade-in {
+    animation: keyFadeIn 0.3s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  @keyframes keyFadeOut {
+    from { opacity:1; transform:translateY(0); }
+    to   { opacity:0; transform:translateY(-12px); }
+  }
+  @keyframes keyFadeIn {
+    from { opacity:0; transform:translateY(14px); }
+    to   { opacity:1; transform:none; }
   }
 
   /* ── main practice area ── */
@@ -789,15 +819,6 @@
     cursor: pointer; transition: background var(--tr), box-shadow var(--tr);
   }
   .prac-midi-btn:hover { background: color-mix(in srgb, var(--lime) 22%, var(--bg3)); box-shadow: 0 0 20px color-mix(in srgb, var(--lime) 22%, transparent); }
-  .prac-demo-entry-btn {
-    border-color: var(--purple);
-    background: color-mix(in srgb, var(--purple) 14%, var(--bg3));
-    color: var(--purple);
-  }
-  .prac-demo-entry-btn:hover {
-    background: color-mix(in srgb, var(--purple) 22%, var(--bg3));
-    box-shadow: 0 0 20px color-mix(in srgb, var(--purple) 22%, transparent);
-  }
   .prac-midi-err { font-size: 0.75rem; color: var(--orange); display: none; }
 
   /* ── MIDI device selection ── */
@@ -910,7 +931,22 @@
     text-align: left; white-space: nowrap;
   }
 
-  /* completion screen */
+  .prac-done-btns {
+    display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center;
+  }
+  .prac-challenge-btn {
+    border-color: var(--orange);
+    background: color-mix(in srgb, var(--orange) 12%, var(--bg3));
+    color: var(--orange);
+  }
+  .prac-challenge-btn:hover {
+    background: color-mix(in srgb, var(--orange) 20%, var(--bg3));
+    box-shadow: 0 0 16px color-mix(in srgb, var(--orange) 18%, transparent);
+  }
+  /* Force LTR for music names so F# etc render correctly */
+  .prac-chord-big, .prac-key-name-ltr, .chip-name, .chord-btn,
+  .chart-label, .key-pick-btn, .prac-hint-pill,
+  .dp-chord, .dp-key, .vel-note-name { direction: ltr; unicode-bidi: embed; }
   .prac-done-screen {
     position: absolute; inset: 0; z-index: 5;
     display: none; flex-direction: column; align-items: center; justify-content: center;
@@ -1139,8 +1175,7 @@
     <div class="prac-opt-group" id="pracKeyOrderGroup" style="display:none">
       <div class="prac-opt-label">סדר סולמות</div>
       <div class="prac-opt-btns" id="pracKeyOrderBtns">
-        <button class="prac-opt-btn active" data-order="sequential">לפי הסדר</button>
-        <button class="prac-opt-btn" data-order="circle_of_fifths">מעגל הקווינטות</button>
+<button class="prac-opt-btn" data-order="circle_of_fifths">מעגל הקווינטות</button>
         <button class="prac-opt-btn" data-order="circle_of_fifths_inverse">מעגל ← הפוך</button>
         <button class="prac-opt-btn" data-order="difficulty_level">לפי קושי</button>
         <button class="prac-opt-btn" data-order="random">אקראי</button>
@@ -1151,15 +1186,14 @@
     <div class="prac-opt-group" id="pracChordOrderGroup" style="display:none">
       <div class="prac-opt-label">סדר אקורדים</div>
       <div class="prac-opt-btns" id="pracChordOrderBtns">
-        <button class="prac-opt-btn active" data-order="sequential">לפי הסדר</button>
-        <button class="prac-opt-btn" data-order="random_progression">מהלך אקראי</button>
+<button class="prac-opt-btn" data-order="sequential">לפי הסדר</button>
+<button class="prac-opt-btn" data-order="random_progression">מהלך אקראי</button>
       </div>
     </div>
 
     <div style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center" id="pracMidiBtnRow">
       <button class="prac-midi-btn" id="pracRequestMidi">בקש גישה ל-MIDI</button>
       <button class="prac-midi-btn" id="pracStartBtn" style="display:none">התחל ▶</button>
-      <button class="prac-midi-btn prac-demo-entry-btn" id="pracDemoEntryBtn">🤖 הפעל דמו</button>
     </div>
     <!-- device list (shown if multiple inputs found) -->
     <div class="prac-device-list" id="pracDeviceList">
@@ -1175,20 +1209,25 @@
       <span class="prac-title">🎹 מצב תרגול</span>
       <span class="prac-progress-txt" id="pracProgressTxt"></span>
       <span class="prac-mode-badge" id="pracModeBadge"></span>
-      <span class="prac-demo-badge" id="pracDemoBadge" style="display:none">🤖 מצב דמו</span>
     </div>
+    <div class="prac-topbar-btns">
+      <button class="prac-pause-btn" id="pracPauseBtn">⏸ השהייה</button>
     <button class="prac-exit-btn" id="pracExitBtn">✕ יציאה</button>
+    </div>
   </div>
 
   <!-- practice main -->
   <div class="prac-main" id="pracMain" style="display:none">
     <div class="prac-key-label" id="pracKeyLabel">
-      סולם: <em id="pracKeyName"></em>
+      סולם: <em id="pracKeyName" dir="ltr"></em>
     </div>
+
 
     <div class="prac-seq" id="pracSeq"></div>
 
-    <div class="prac-chord-big" id="pracChordBig" data-text=""></div>
+    <div class="prac-chord-big" id="pracChordBig" data-text="" dir="ltr"></div>
+
+    <div class="prac-streak" id="pracStreak" style="display:none"></div>
 
     <div class="prac-status" id="pracStatus">נגן את האקורד המסומן</div>
 
@@ -1220,10 +1259,13 @@
     <div class="prac-done-stats" id="pracDoneStats"></div>
     <!-- mistakes-per-key bar chart -->
     <div class="prac-done-chart-wrap" id="pracDoneChartWrap" style="display:none">
-      <div class="prac-done-chart-title">טעויות לפי סולם</div>
+      <div class="prac-done-chart-title">סולמות עם טעויות</div>
       <div class="prac-done-chart" id="pracDoneChart"></div>
     </div>
-    <button class="prac-done-btn" id="pracRestartBtn">תרגול נוסף</button>
+    <div class="prac-done-btns">
+      <button class="prac-done-btn" id="pracRestartBtn">תרגול נוסף</button>
+      <button class="prac-done-btn prac-challenge-btn" id="pracChallengeBtn" style="display:none">🎯 תרגל אקורדים מאתגרים</button>
+    </div>
   </div>
 
 </div>
@@ -1363,17 +1405,17 @@ const CHORD_PROGRESSIONS = {
   major: [
     [1,4,7,3,6,2,5,1],
     [1,5,6,3,4,2,7,1],
-    [6,3,7,2,5,1,4,1],
+    [1,6,3,7,2,5,4,1],
     [1,3,6,2,5,7,4,1],
-    [4,2,5,7,3,6,1,1],
+    [1,4,2,5,7,3,6,1],
     [1,6,2,5,3,7,4,1]
   ],
   minor: [
     [1,4,2,6,3,7,5,1],
     [1,7,6,5,3,2,4,1],
-    [6,3,7,1,4,2,5,1],
+    [1,6,3,7,4,2,5,1],
     [1,3,6,7,2,5,4,1],
-    [6,7,1,3,5,2,4,1],
+    [1,6,7,3,5,2,4,1],
     [1,5,4,7,3,6,2,1]
   ]
 };
@@ -1521,6 +1563,8 @@ const pracMain         = document.getElementById('pracMain');
 const pracProgressTxt  = document.getElementById('pracProgressTxt');
 const pracModeBadge    = document.getElementById('pracModeBadge');
 const pracExitBtn      = document.getElementById('pracExitBtn');
+const pracPauseBtn     = document.getElementById('pracPauseBtn');
+const pracChallengeBtn = document.getElementById('pracChallengeBtn');
 const pracKeyLabel     = document.getElementById('pracKeyLabel');
 const pracKeyName      = document.getElementById('pracKeyName');
 const pracSeq          = document.getElementById('pracSeq');
@@ -1544,19 +1588,15 @@ const pracKeyPicker    = document.getElementById('pracKeyPicker');
 const pracKeyPickerGrid= document.getElementById('pracKeyPickerGrid');
 const pracMidiBtnRow   = document.getElementById('pracMidiBtnRow');
 const pracStartBtn     = document.getElementById('pracStartBtn');
-const pracDemoEntryBtn = document.getElementById('pracDemoEntryBtn');
-const pracDemoBadge    = document.getElementById('pracDemoBadge');
 const pracKeyOrderGroup= document.getElementById('pracKeyOrderGroup');
 const pracKeyOrderBtns = document.getElementById('pracKeyOrderBtns');
 const pracChordOrderGroup=document.getElementById('pracChordOrderGroup');
 const pracChordOrderBtns= document.getElementById('pracChordOrderBtns');
+const pracStreak         = document.getElementById('pracStreak');
+
 
 function exitPracticeIfOpen() {
   if (practiceOverlay.style.display !== 'none' && practiceOverlay.style.display !== '') {
-    demoCancelAll();
-    simReleaseAll();
-    prac.demoMode = false;
-    pracDemoBadge.style.display = 'none';
     clearHintTimer();
     clearTimeout(prac.resetTimer);
     prac.resetTimer = null;
@@ -1565,6 +1605,8 @@ function exitPracticeIfOpen() {
     prac.notesAtStart.clear();
     prac.playedPCs.clear();
     prac.prevChordPCs.clear();
+    prac.phase = 'idle';
+    prac.paused = false;
     practiceOverlay.classList.remove('prac-wrong', 'prac-correct');
     practiceOverlay.style.display = 'none';
   }
@@ -1631,10 +1673,16 @@ const prac = {
   resetTimer: null,
   hintShown: false,
   locked: false,
+  paused: false,
+  hintElapsed: 0,            // ms elapsed on hint timer before pause
+  hintStartedAt: null,       // timestamp when current hint timer started
   startTime: null,
   mistakeCount: 0,
   // per-key mistake tracking (array indexed by keyIdx within the active set)
   keyMistakes: [],
+  // per chord-type mistake tracking (keyed by degree string across all keys)
+  chordTypeMistakes: {},     // { "vii°": 3, "iii": 1, ... }
+  chordTypeExamples:  {},    // { "vii°": chordObj, ... } — one representative chord per type
   // chord timing
   chordStartTime: null,
   totalChordTime: 0,
@@ -1643,14 +1691,21 @@ const prac = {
   scope: 'all',       // 'all' | 'single'
   singleKeyIdx: 0,
   // ordering
-  keyOrder:   'sequential',          // 'sequential'|'circle_of_fifths'|'circle_of_fifths_inverse'|'difficulty_level'|'random'
-  chordOrder: 'sequential',          // 'sequential' | 'random_progression'
-  pracKeySeq: [],                    // resolved key array for this session
-  currentProgression: [],            // active chord index sequence for random_progression mode
-  // demo
-  demoMode: false,
-  demoTimers: [],
-  demoJustRetrying: false,
+  keyOrder:   'circle_of_fifths', // 'circle_of_fifths'|'circle_of_fifths_inverse'|'difficulty_level'|'random'
+  chordOrder: 'sequential',       // 'sequential' | 'random_progression'
+  pracKeySeq: [],                 // resolved key array for this session
+  currentProgression: [],         // active chord index sequence for random_progression mode
+  // challenge mode
+  mode: 'normal',          // 'normal' | 'challenge'
+  challengeChords: [],     // 5 chord objects to practice
+  challengeRound: 0,       // 0-2 (3 rounds total)
+  challengeRoundSeq: [],   // shuffled order for current round
+  challengeMistakes: 0,    // mistakes in challenge session
+  challengeCorrect: 0,
+  challengeChordTime: 0,
+  challengeChordStartTime: null,
+  midiJustApproved: false, // first approval → go straight to practice
+  streak: 0,               // consecutive correct chords without a wrong
 };
 
 const HINT_DELAY = 7000;
@@ -1788,7 +1843,10 @@ function getSeqChords() {
   }
   return [...kd.chords, {...kd.chords[0], isRepeatI: true}];
 }
-function getCurrentTarget() { return getSeqChords()[prac.chordIdx]; }
+function getCurrentTarget() {
+  if (prac.phase === 'challenge') return getChallengeTarget();
+  return getSeqChords()[prac.chordIdx];
+}
 
 // ── Open practice overlay ──
 // ── Build key-picker grid ──
@@ -1799,7 +1857,7 @@ function buildKeyPickerGrid() {
   all.forEach((kd, idx) => {
     const btn = document.createElement('button');
     btn.className = 'key-pick-btn' + (idx === prac.singleKeyIdx ? ' active' : '');
-    btn.textContent = kd.key + (currentMode === 'minor' ? 'm' : '');
+    btn.textContent = kd.key;
     btn.addEventListener('click', () => {
       prac.singleKeyIdx = idx;
       pracKeyPickerGrid.querySelectorAll('.key-pick-btn').forEach((b, i) =>
@@ -1822,6 +1880,8 @@ openPracticeBtn.addEventListener('click', () => {
   pracMain.style.display       = 'none';
 
   // Show/hide MIDI vs Start button based on existing access
+  // After first MIDI approval we go directly to practice (midiJustApproved=true).
+  // On subsequent open-from-home, midiJustApproved=false → show התחל button.
   const hasMidi = !!prac.midiAccess;
   pracRequestMidi.style.display = hasMidi ? 'none' : '';
   pracStartBtn.style.display    = hasMidi ? '' : 'none';
@@ -1849,6 +1909,53 @@ openPracticeBtn.addEventListener('click', () => {
     : 'האפליקציה צריכה גישה למקלדת ה-MIDI שלך.\nחבר את הכלי ולחץ על הכפתור להתחלת התרגול.';
 });
 
+
+// ── Pause / Resume ──
+pracPauseBtn.addEventListener('click', () => {
+  if (!prac.paused) {
+    // PAUSE
+    prac.paused = true;
+    prac.locked = true;
+    pracPauseBtn.textContent = '▶ המשך';
+    pracPauseBtn.classList.add('paused');
+    // Freeze hint timer: record remaining time
+    if (prac.hintTimer) {
+      clearTimeout(prac.hintTimer);
+      prac.hintTimer = null;
+      prac.hintPausedAt = Date.now();
+      // Calculate remaining ms from bar transform
+      const bar = pracHintBar;
+      const style = window.getComputedStyle(bar);
+      const scaleX = parseFloat((style.transform || '').match(/matrix\(([^,]+)/)?.[1] ?? '1');
+      prac.hintRemainingMs = Math.round(scaleX * HINT_DELAY);
+    }
+    // Freeze bar animation
+    const bar = pracHintBar;
+    const computed = window.getComputedStyle(bar);
+    bar.style.transition = 'none';
+    bar.style.transform  = computed.transform;
+    setStatus('⏸ מושהה', '');
+  } else {
+    // RESUME
+    prac.paused = false;
+    prac.locked = false;
+    pracPauseBtn.textContent = '⏸ השהייה';
+    pracPauseBtn.classList.remove('paused');
+    setStatus('נגן את האקורד המסומן', '');
+    // Resume hint timer with remaining time
+    const remaining = prac.hintRemainingMs ?? HINT_DELAY;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      pracHintBar.style.transition = `transform ${remaining}ms linear`;
+      pracHintBar.style.transform  = 'scaleX(0)';
+    }));
+    if (remaining > 0 && !prac.hintShown) {
+      prac.hintTimer = setTimeout(() => { if (!prac.hintShown) showHint(); }, remaining);
+    }
+    prac.hintRemainingMs = null;
+    prac.hintPausedAt    = null;
+  }
+});
+
 // ── Scope buttons ──
 scopeAllBtn.addEventListener('click', () => {
   prac.scope = 'all';
@@ -1866,6 +1973,30 @@ scopeSingleBtn.addEventListener('click', () => {
   pracKeyOrderGroup.style.display = 'none';
 });
 
+// ════════════════════════════════════════════
+//  SETTINGS PERSISTENCE (localStorage)
+// ════════════════════════════════════════════
+const SETTINGS_KEY = 'diatonic_prac_settings';
+
+function saveSettings() {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+      keyOrder:   prac.keyOrder,
+      chordOrder: prac.chordOrder,
+    }));
+  } catch(e) {}
+}
+
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+    if (s.keyOrder)   prac.keyOrder   = s.keyOrder;
+    if (s.chordOrder) prac.chordOrder = s.chordOrder;
+  } catch(e) {}
+}
+
+loadSettings();
+
 // ── Order button groups ──
 function syncOrderBtns() {
   pracKeyOrderBtns.querySelectorAll('.prac-opt-btn').forEach(btn =>
@@ -1879,6 +2010,7 @@ pracKeyOrderBtns.addEventListener('click', e => {
   if (!btn) return;
   prac.keyOrder = btn.dataset.order;
   syncOrderBtns();
+  saveSettings();
 });
 
 pracChordOrderBtns.addEventListener('click', e => {
@@ -1886,6 +2018,7 @@ pracChordOrderBtns.addEventListener('click', e => {
   if (!btn) return;
   prac.chordOrder = btn.dataset.order;
   syncOrderBtns();
+  saveSettings();
 });
 
 // ── Start button (when MIDI already granted) ──
@@ -1915,10 +2048,7 @@ pracRequestMidi.addEventListener('click', async () => {
     if (inputs.length === 1) {
       prac.selectedInputId = inputs[0].id;
       attachMidiListeners();
-      // Show התחל button so user can still choose order settings
-      pracRequestMidi.style.display = 'none';
-      pracStartBtn.style.display    = '';
-      pracMidiDesc.textContent = 'המכשיר מחובר ומוכן. בחר הגדרות ולחץ התחל.';
+      startPractice();
     } else {
       pracRequestMidi.style.display = 'none';
       pracMidiDesc.textContent = `נמצאו ${inputs.length} מכשירי MIDI. בחר את המכשיר לתרגול:`;
@@ -1945,7 +2075,7 @@ function attachMidiListeners() {
 }
 
 function handleMidi(event) {
-  if (!prac.midiAccess) return;
+  if (!prac.midiAccess || prac.paused) return;
   const [status, note, velocity] = event.data;
   const cmd = status & 0xf0;
   if (cmd === 0x90 && velocity > 0) {
@@ -1962,11 +2092,23 @@ function handleMidi(event) {
   }
 }
 
+function updateStreakDisplay() {
+  if (prac.streak >= 3) {
+    const fire = prac.streak >= 10 ? '🔥🔥' : prac.streak >= 5 ? '🔥' : '⚡';
+    pracStreak.textContent = `${fire} רצף ${prac.streak}`;
+    pracStreak.style.display = '';
+    // re-trigger animation
+    pracStreak.style.animation = 'none';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      pracStreak.style.animation = '';
+    }));
+  } else {
+    pracStreak.style.display = 'none';
+  }
+}
+
 // ── Start / restart full practice session ──
 function startPractice() {
-  demoCancelAll();
-  simReleaseAll();
-  prac.demoJustRetrying = false;
   prac.keyIdx = 0;
   prac.startTime = Date.now();
   prac.mistakeCount = 0;
@@ -1975,6 +2117,10 @@ function startPractice() {
   prac.playedPCs.clear();
   prac.prevChordPCs.clear();
   prac.locked = false;
+  prac.phase = 'practicing';
+  prac.paused = false;
+  prac.chordTypeMistakes = {};
+  prac.streak = 0;
 
   // Build ordered key sequence for this session
   const all = DATA[currentCtype][currentMode];
@@ -1992,6 +2138,9 @@ function startPractice() {
     prac.pracKeySeq = [...all];
   }
 
+  prac.mode = 'normal';
+  prac.chordTypeMistakes = {};
+  prac.chordTypeExamples  = {};
   // tracking
   const keys = getPracKeys();
   prac.keyMistakes      = new Array(keys.length).fill(0);
@@ -2019,33 +2168,47 @@ function startPractice() {
 }
 
 function startKey(ki) {
-  prac.keyIdx    = ki;
-  prac.chordIdx  = 0;
-  prac.held.clear();
-  prac.notesAtStart.clear();
-  prac.playedPCs.clear();
-  prac.prevChordPCs.clear();
-  clearHintTimer();
+  // Fade out current content, then swap
+  const doStart = () => {
+    prac.keyIdx    = ki;
+    prac.chordIdx  = 0;
+    prac.held.clear();
+    prac.notesAtStart.clear();
+    prac.playedPCs.clear();
+    prac.prevChordPCs.clear();
+    clearHintTimer();
 
-  // Pick a random progression if needed
-  if (prac.chordOrder === 'random_progression') {
-    const pool = CHORD_PROGRESSIONS[currentMode];
-    prac.currentProgression = pool[Math.floor(Math.random() * pool.length)];
+    // Pick a random progression if needed
+    if (prac.chordOrder === 'random_progression') {
+      const pool = CHORD_PROGRESSIONS[currentMode];
+      prac.currentProgression = pool[Math.floor(Math.random() * pool.length)];
+    } else {
+      prac.currentProgression = [];
+    }
+
+    const keys = getPracKeys();
+    pracProgressTxt.textContent = `סולם ${ki + 1} מתוך ${keys.length}`;
+
+    const kd = getPracKeyData();
+    pracKeyName.textContent = kd.key + ' ' + (currentMode === 'major' ? 'Major' : 'Minor');
+
+    // Fade in
+    pracMain.classList.remove('prac-key-fade-out', 'prac-key-fade-in');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      pracMain.classList.add('prac-key-fade-in');
+    }));
+
+    renderSeq();
+    showCurrentChord();
+  };
+
+  if (ki === 0) {
+    // First key — no fade out
+    doStart();
   } else {
-    prac.currentProgression = [];
+    pracMain.classList.add('prac-key-fade-out');
+    setTimeout(doStart, 220);
   }
-
-  const keys = getPracKeys();
-  pracProgressTxt.textContent = `סולם ${ki + 1} מתוך ${keys.length}`;
-
-  const kd = getPracKeyData();
-  pracKeyName.textContent = kd.key + ' ' + (currentMode === 'major' ? 'Major' : 'Minor');
-  // Double rAF: first frame commits animation:none, second re-applies it
-  pracKeyLabel.style.animation = 'none';
-  requestAnimationFrame(() => requestAnimationFrame(() => { pracKeyLabel.style.animation = ''; }));
-
-  renderSeq();
-  showCurrentChord();
 }
 
 function renderSeq() {
@@ -2061,7 +2224,7 @@ function renderSeq() {
     ].filter(Boolean).join(' ');
     return `<div class="${classes}">
       <span class="chip-degree">${isRepeat ? (currentMode === 'minor' ? 'i' : 'I') : ch.degree}</span>
-      <span class="chip-name">${shortName(ch.name)}</span>
+      <span class="chip-name" dir="ltr">${shortName(ch.name)}</span>
     </div>`;
   }).join('');
 }
@@ -2096,27 +2259,26 @@ function showCurrentChord() {
   // start 7-second hint timer
   startHintTimer();
 
-  // if demo mode is running, schedule a simulated play
-  if (prac.demoMode) {
-    demoCancelAll();
-    demoPlay();
-  }
 }
 
-function startHintTimer() {
+function startHintTimer(remaining) {
+  const delay = remaining !== undefined ? remaining : HINT_DELAY;
+  prac.hintElapsed = HINT_DELAY - delay;
+  prac.hintStartedAt = Date.now();
+
   // Reset bar with a forced reflow between removing and re-adding the transition
   pracHintBarWrap.classList.add('visible');
   pracHintBar.style.transition = 'none';
-  pracHintBar.style.transform  = 'scaleX(1)';
+  pracHintBar.style.transform  = `scaleX(${delay / HINT_DELAY})`;
   // Double rAF ensures the "no-transition reset" frame is committed before starting animation
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    pracHintBar.style.transition = `transform ${HINT_DELAY}ms linear`;
+    pracHintBar.style.transition = `transform ${delay}ms linear`;
     pracHintBar.style.transform  = 'scaleX(0)';
   }));
 
   prac.hintTimer = setTimeout(() => {
     if (!prac.hintShown) showHint();
-  }, HINT_DELAY);
+  }, delay);
 }
 
 function clearHintTimer() {
@@ -2131,7 +2293,7 @@ function showHint() {
   prac.hintShown = true;
   const target = getCurrentTarget();
   pracHint.innerHTML = target.notes.map((n, i) =>
-    `<span class="prac-hint-pill" style="--ni:${i}">${n}</span>`
+    `<span class="prac-hint-pill" style="--ni:${i}" dir="ltr">${n}</span>`
   ).join('');
   pracHint.classList.remove('hidden');
   setStatus('הנה תווי האקורד — נסה לנגן אותם', 'hint');
@@ -2164,13 +2326,22 @@ function checkChord() {
 }
 
 function onCorrect() {
+  if (prac.phase === 'challenge') { onChallengeCorrect(); return; }
+  prac.streak++;
+  updateStreakDisplay();
   prac.locked = true;
   // save this chord's PCs so the next chord can tolerate them as leftovers
   prac.prevChordPCs = new Set(getCurrentTarget().notes.map(noteNameToPC));
   // record chord time
   if (prac.chordStartTime) {
-    prac.totalChordTime += Date.now() - prac.chordStartTime;
-    prac.totalChordsPlayed++;
+    const elapsed = Date.now() - prac.chordStartTime;
+    if (prac.mode === 'challenge') {
+      prac.challengeChordTime += elapsed;
+      prac.challengeCorrect++;
+    } else {
+      prac.totalChordTime += elapsed;
+      prac.totalChordsPlayed++;
+    }
     prac.chordStartTime = null;
   }
   clearHintTimer();
@@ -2202,12 +2373,24 @@ function onCorrect() {
 }
 
 function onWrong() {
-  if (prac.demoMode) { prac.demoJustRetrying = true; demoCancelAll(); simReleaseAll(); }
+  if (prac.phase === 'challenge') { onChallengeWrong(); return; }
+  prac.streak = 0;
+  updateStreakDisplay();
   prac.locked = true;
   prac.mistakeCount++;
   // per-key mistake counter
   if (prac.keyMistakes && prac.keyIdx < prac.keyMistakes.length)
     prac.keyMistakes[prac.keyIdx]++;
+  // track per chord-type mistakes (by degree, across all keys)
+  if (prac.mode === 'normal') {
+    const tgt = getCurrentTarget();
+    if (tgt && tgt.degree) {
+      prac.chordTypeMistakes[tgt.degree] = (prac.chordTypeMistakes[tgt.degree] || 0) + 1;
+      if (!prac.chordTypeExamples[tgt.degree]) prac.chordTypeExamples[tgt.degree] = tgt;
+    }
+  } else if (prac.mode === 'challenge') {
+    prac.challengeMistakes++;
+  }
   prac.chordStartTime = null; // reset chord timer — will restart at showCurrentChord
   clearHintTimer();
   clearTimeout(prac.resetTimer);
@@ -2228,7 +2411,7 @@ function onWrong() {
   }, 1200);
 }
 
-function showDone() {
+function showDone(partial) {
   const elapsed  = Math.round((Date.now() - prac.startTime) / 1000);
   const mins     = Math.floor(elapsed / 60);
   const secs     = elapsed % 60;
@@ -2251,7 +2434,8 @@ function showDone() {
     : `${keys.length} סולמות ${modeStr} (${typeStr})`;
   pracDoneDesc.textContent =
     `${scopeDesc} · ${timeStr}` +
-    (prac.mistakeCount === 0 ? ' · ללא טעויות! 🎯' : '');
+    (prac.mistakeCount === 0 && !partial ? ' · ללא טעויות! 🎯' : '') +
+    (partial ? ' (תרגול חלקי)' : '');
 
   // stat pills
   const stats = [
@@ -2268,26 +2452,31 @@ function showDone() {
      </div>`
   ).join('');
 
-  // bar chart (only if more than 1 key and any mistakes)
+  // bar chart (only if more than 1 key; filtered to keys with mistakes only)
   const km = prac.keyMistakes || [];
-  const hasChart = keys.length > 1;
+  const keysWithMistakes = keys.map((kd, i) => ({ kd, m: km[i] || 0 })).filter(x => x.m > 0);
+  const hasChart = keys.length > 1 && keysWithMistakes.length > 0;
   pracDoneChartWrap.style.display = hasChart ? '' : 'none';
   if (hasChart) {
-    const maxM = Math.max(...km, 1);
-    pracDoneChart.innerHTML = keys.map((kd, i) => {
-      const m   = km[i] || 0;
+    const maxM = Math.max(...keysWithMistakes.map(x => x.m), 1);
+    pracDoneChart.innerHTML = keysWithMistakes.map(({ kd, m }, i) => {
       const pct = Math.round((m / maxM) * 100);
-      const lbl = kd.key + (currentMode === 'minor' ? 'm' : '');
+      const lbl = kd.key;
       return `<div class="chart-col" style="--ci:${i}">
         <div class="chart-bar-wrap">
-          <div class="chart-bar ${m === 0 ? 'zero' : ''}" style="height:${Math.max(3, pct * 0.6)}px"></div>
+          <div class="chart-bar" style="height:${Math.max(3, pct * 0.6)}px"></div>
         </div>
         <div class="chart-label" title="${lbl} — ${m} טעויות">${lbl}</div>
       </div>`;
     }).join('');
   }
 
+  // Show challenge button only for full 'all' scope sessions (not single key, not challenge, not partial)
+  const showChallenge = !partial && prac.scope !== 'single' && prac.phase !== 'challenge';
+  pracChallengeBtn.style.display = showChallenge ? '' : 'none';
+
   pracDoneScreen.classList.add('show');
+  pracStreak.style.display = 'none';
 }
 
 pracRestartBtn.addEventListener('click', () => {
@@ -2298,164 +2487,214 @@ pracRestartBtn.addEventListener('click', () => {
 });
 
 pracExitBtn.addEventListener('click', () => {
-  demoCancelAll();
-  simReleaseAll();
-  prac.demoMode = false;
-  pracDemoBadge.style.display = 'none';
+  if (prac.phase === 'stats') {
+    // Second click: close overlay and return to main
+    prac.phase = 'idle';
+    practiceOverlay.style.display = 'none';
+    return;
+  }
+  // First click while practicing or challenge: stop and show stats
   clearHintTimer();
   clearTimeout(prac.resetTimer);
   prac.resetTimer = null;
-  prac.locked     = false;
+  prac.locked = true;
+  prac.paused = false;
+  pracPauseBtn.textContent = '⏸ השהייה';
+  pracPauseBtn.classList.remove('paused');
   prac.held.clear();
   prac.notesAtStart.clear();
   prac.playedPCs.clear();
   prac.prevChordPCs.clear();
   practiceOverlay.classList.remove('prac-wrong', 'prac-correct');
-  practiceOverlay.style.display = 'none';
   stopVelPrune();
   clearVelPanel();
+  pracTopbar.style.display = 'none';
+  pracMain.style.display   = 'none';
+  prac.phase = 'stats';
+  showDone(true);
 });
 
-// ════════════════════════════════════════════════════════
-//  DEMO MODE ENGINE
-// ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+//  CHALLENGE MODE — practice the 5 most-missed chord types
+// ════════════════════════════════════════════════════════════════
 
-const DEMO_MISTAKE_RATE = 0.02;
+function startChallengeMode() {
+  // Pick top 5 chord types by mistake count (random tiebreaker)
+  const entries = Object.entries(prac.chordTypeMistakes);
+  if (entries.length === 0) return;
 
-// Note-name → MIDI number in comfortable playing range (C3–B5)
-function noteNameToMidi(name) {
-  const basePC = {C:0, D:2, E:4, F:5, G:7, A:9, B:11};
-  let pc = basePC[name[0]] ?? 0;
-  for (let i = 1; i < name.length; i++) {
-    if      (name[i] === '#') pc++;
-    else if (name[i] === 'b') pc--;
-  }
-  pc = ((pc % 12) + 12) % 12;
-  // anchor to octave 4 (C4=60), then nudge into range 48-72
-  let midi = pc + 60;
-  if (midi > 72) midi -= 12;
-  return midi;
-}
+  // Sort by mistakes desc, random tiebreaker
+  entries.sort((a, b) => b[1] - a[1] || Math.random() - 0.5);
+  const top5degrees = entries.slice(0, 5).map(e => e[0]);
 
-// Box-Muller Gaussian
-function randGauss(mean, std) {
-  let u = 0, v = 0;
-  while (!u) u = Math.random();
-  while (!v) v = Math.random();
-  return mean + std * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
-}
-function randInt(lo, hi) { return Math.floor(Math.random() * (hi - lo + 1)) + lo; }
-function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  // For each degree, find a concrete chord from DATA (any key)
+  const allKeys = DATA[currentCtype][currentMode];
+  prac.challengeTypes = top5degrees.map(deg => {
+    // Collect all chords with this degree across all keys
+    const candidates = [];
+    allKeys.forEach(kd => {
+      const ch = kd.chords.find(c => c.degree === deg);
+      if (ch) candidates.push({ ...ch, keyLabel: kd.key });
+    });
+    // Pick randomly among candidates
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }).filter(Boolean);
 
-function demoSchedule(fn, ms) {
-  const id = setTimeout(fn, Math.max(0, ms));
-  prac.demoTimers.push(id);
-  return id;
-}
-function demoCancelAll() {
-  (prac.demoTimers || []).forEach(clearTimeout);
-  prac.demoTimers = [];
-}
+  if (prac.challengeTypes.length === 0) return;
 
-// Simulate a single MIDI note-on/off pair
-function simNoteOn(midi, velocity) {
-  prac.held.add(midi);
-  velNoteOn(midi, velocity);
-  if (!prac.locked) {
-    prac.playedPCs.add(midi % 12);
-    checkChord();
-  }
-}
-function simNoteOff(midi) {
-  prac.held.delete(midi);
-  prac.notesAtStart.delete(midi);
-  velNoteOff(midi);
-}
+  prac.phase          = 'challenge';
+  prac.challengeRound = 0;
+  prac.challengeStartTime = Date.now();
+  prac.challengeMistakes  = 0;
+  prac.challengeCorrect   = 0;
+  prac.challengeTime      = 0;
+  prac.chordTypeMistakes  = {};  // reset for fresh tracking during challenge
 
-// Release all currently held simulated notes
-function simReleaseAll() {
-  [...prac.held].forEach(n => {
-    velNoteOff(n);
-    prac.held.delete(n);
-    prac.notesAtStart.delete(n);
-  });
-}
-
-// Called from showCurrentChord() when demo is active
-function demoPlay() {
-  if (!prac.demoMode || prac.locked) return;
-
-  const target    = getCurrentTarget();
-  const noteNames = target.notes;
-  const chordSize = noteNames.length;
-
-  // Decide: mistake this chord?
-  // Don't mistake on a retry (prac.demoJustRetrying)
-  const canMistake = !prac.demoJustRetrying;
-  prac.demoJustRetrying = false;
-  const makeMistake = canMistake && Math.random() < DEMO_MISTAKE_RATE;
-
-  // "Reading" reaction time before playing
-  const reactionMs = clamp(Math.round(randGauss(1000, 320)), 380, 2800);
-
-  // 40% arpeggio, 60% block chord
-  const isArpeggio = Math.random() < 0.40;
-
-  // Generate per-note velocities — arpeggio root slightly accented
-  function genVel(noteIdx) {
-    let base = clamp(Math.round(randGauss(70, 16)), 38, 112);
-    if (isArpeggio && noteIdx === 0) base = clamp(base + randInt(6, 18), 50, 120);
-    return base;
-  }
-
-  demoSchedule(() => {
-    if (!prac.demoMode || prac.locked) return;
-
-    // Build MIDI note list, optionally inject one wrong note
-    let midiNotes = noteNames.map(noteNameToMidi);
-    if (makeMistake) {
-      const badIdx   = randInt(0, chordSize - 1);
-      const shift    = Math.random() < 0.5 ? 1 : -1;
-      midiNotes      = [...midiNotes];
-      midiNotes[badIdx] = midiNotes[badIdx] + shift;
-    }
-
-    if (isArpeggio) {
-      // — ARPEGGIO — notes staggered, each released individually
-      const stagger  = clamp(Math.round(randGauss(115, 28)), 65, 210);
-      const holdNote = clamp(Math.round(randGauss(380, 80)), 200, 700);
-      midiNotes.forEach((midi, i) => {
-        const vel = genVel(i);
-        const t   = i * stagger;
-        demoSchedule(() => { if (!prac.demoMode) return; simNoteOn(midi, vel); }, t);
-        demoSchedule(() => { if (!prac.demoMode) return; simNoteOff(midi); },    t + holdNote);
-      });
-    } else {
-      // — BLOCK CHORD — near-simultaneous with tiny human jitter (0–30 ms)
-      const holdChord = clamp(Math.round(randGauss(560, 130)), 280, 950);
-      midiNotes.forEach((midi, i) => {
-        const jitter = randInt(0, 28);
-        const vel    = genVel(i);
-        demoSchedule(() => { if (!prac.demoMode) return; simNoteOn(midi, vel); }, jitter);
-        demoSchedule(() => { if (!prac.demoMode) return; simNoteOff(midi); },    jitter + holdChord);
-      });
-    }
-  }, reactionMs);
-}
-
-// Toggle demo mode
-pracDemoEntryBtn.addEventListener('click', () => {
-  prac.demoMode         = true;
-  prac.demoJustRetrying = false;
-  prac.demoTimers       = [];
-  pracDemoBadge.style.display = '';
+  pracDoneScreen.classList.remove('show');
   pracMidiScreen.style.display = 'none';
   pracTopbar.style.display     = 'flex';
   pracMain.style.display       = 'flex';
-  pracDoneScreen.classList.remove('show');
+  pracPauseBtn.style.display   = '';
+
+  pracModeBadge.textContent = 'אקורדים מאתגרים';
+  startChallengeRound();
+}
+
+function startChallengeRound() {
+  prac.challengeSeq = shuffleArray([...Array(prac.challengeTypes.length).keys()]);
+  prac.challengePos = 0;
+  prac.held.clear();
+  prac.notesAtStart.clear();
+  prac.playedPCs.clear();
+  prac.prevChordPCs.clear();
+  prac.locked = false;
+  prac.paused = false;
+
+  const roundLabel = `סיבוב ${prac.challengeRound + 1}/3`;
+  pracProgressTxt.textContent = roundLabel;
+  pracKeyName.textContent     = 'אקורדים מאתגרים';
+  pracKeyLabel.style.animation = 'none';
+  requestAnimationFrame(() => requestAnimationFrame(() => { pracKeyLabel.style.animation = ''; }));
+
+  clearHintTimer();
+  renderChallengeSeq();
+  showCurrentChord();
+}
+
+function renderChallengeSeq() {
+  pracSeq.innerHTML = prac.challengeSeq.map((typeIdx, pos) => {
+    const ch = prac.challengeTypes[typeIdx];
+    const isDone    = pos < prac.challengePos;
+    const isCurrent = pos === prac.challengePos;
+    const classes = ['prac-seq-chip',
+      isDone ? 'done' : '',
+      isCurrent ? 'current' : ''
+    ].filter(Boolean).join(' ');
+    return `<div class="${classes}">
+      <span class="chip-degree">${ch.degree}</span>
+      <span class="chip-name" dir="ltr">${shortName(ch.name)}</span>
+    </div>`;
+  }).join('');
+}
+
+function getChallengeTarget() {
+  const typeIdx = prac.challengeSeq[prac.challengePos];
+  return prac.challengeTypes[typeIdx];
+}
+
+function onChallengeCorrect() {
+  prac.locked = true;
+  const elapsed = prac.chordStartTime ? Date.now() - prac.chordStartTime : 0;
+  prac.challengeTime += elapsed;
+  prac.challengeCorrect++;
+  prac.chordStartTime = null;
+  clearHintTimer();
+  clearTimeout(prac.resetTimer);
+  practiceOverlay.classList.remove('prac-wrong');
+  practiceOverlay.classList.add('prac-correct');
+
+  prac.challengePos++;
+  const roundDone = prac.challengePos >= prac.challengeTypes.length;
+
+  if (roundDone) {
+    prac.challengeRound++;
+    const allRoundsDone = prac.challengeRound >= 3;
+    if (allRoundsDone) {
+      setStatus('✓ תרגול מאתגר הושלם! 🎯', 'ok');
+      renderChallengeSeq();
+      prac.resetTimer = setTimeout(() => showChallengeDone(), 900);
+    } else {
+      setStatus(`✓ סיבוב ${prac.challengeRound} הושלם!`, 'ok');
+      renderChallengeSeq();
+      prac.resetTimer = setTimeout(() => startChallengeRound(), 900);
+    }
+  } else {
+    setStatus('✓ נכון!', 'ok');
+    renderChallengeSeq();
+    prac.resetTimer = setTimeout(() => showCurrentChord(), 500);
+  }
+}
+
+function onChallengeWrong() {
+  prac.locked = true;
+  prac.challengeMistakes++;
+  prac.chordStartTime = null;
+  clearHintTimer();
+  clearTimeout(prac.resetTimer);
+  practiceOverlay.classList.remove('prac-correct');
+  practiceOverlay.classList.add('prac-wrong');
+  setStatus('✗ לא נכון — נסה שוב', 'err');
+
+  prac.resetTimer = setTimeout(() => {
+    prac.held.clear();
+    prac.notesAtStart.clear();
+    prac.playedPCs.clear();
+    prac.prevChordPCs.clear();
+    renderChallengeSeq();
+    showCurrentChord();
+  }, 1200);
+}
+
+function showChallengeDone() {
+  const totalCorrect  = prac.challengeCorrect;
+  const totalAttempts = totalCorrect + prac.challengeMistakes;
+  const pctSuccess    = totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : 100;
+  const avgSec = totalCorrect > 0 ? (prac.challengeTime / totalCorrect / 1000).toFixed(1) : '—';
+  const elapsed = Math.round((Date.now() - prac.challengeStartTime) / 1000);
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+  const timeStr = `${mins}:${String(secs).padStart(2,'0')}`;
+
+  pracDoneDesc.textContent = `5 אקורדים מאתגרים · 3 סיבובים · ${timeStr}`;
+
+  const stats = [
+    { val: timeStr,              lbl: 'זמן כולל' },
+    { val: totalCorrect,         lbl: 'אקורדים' },
+    { val: `${pctSuccess}%`,     lbl: 'הצלחה' },
+    { val: `${avgSec}ש`,         lbl: 'ממוצע/אקורד' },
+    { val: prac.challengeMistakes, lbl: 'טעויות' },
+  ];
+  pracDoneStats.innerHTML = stats.map((s, i) =>
+    `<div class="prac-stat-pill" style="--si:${i}">
+       <span class="prac-stat-val">${s.val}</span>
+       <span class="prac-stat-lbl">${s.lbl}</span>
+     </div>`
+  ).join('');
+
+  pracDoneChartWrap.style.display = 'none';
+  pracChallengeBtn.style.display  = 'none';
+
+  prac.phase = 'stats';
+  pracTopbar.style.display = 'none';
+  pracMain.style.display   = 'none';
+  stopVelPrune();
   clearVelPanel();
-  startVelPrune();
-  startPractice();
+  pracDoneScreen.classList.add('show');
+}
+
+pracChallengeBtn.addEventListener('click', () => {
+  pracDoneScreen.classList.remove('show');
+  startChallengeMode();
 });
 
 
