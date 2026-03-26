@@ -1143,6 +1143,16 @@
     font-size: 0.58rem; font-weight: 600; letter-spacing: 0.1em;
     text-transform: uppercase; color: var(--text-dim); margin-top: 0.25rem;
   }
+  .prac-stat-record {
+    font-size: 0.52rem; font-weight: 700; color: var(--orange);
+    letter-spacing: 0.05em; margin-top: 0.12rem;
+  }
+  .prac-stat-pill.record-new {
+    border-color: color-mix(in srgb, var(--orange) 55%, transparent);
+    background: color-mix(in srgb, var(--orange) 9%, var(--bg3));
+    box-shadow: 0 0 10px color-mix(in srgb, var(--orange) 15%, transparent);
+  }
+  .prac-stat-pill.record-new .prac-stat-val { color: var(--orange); }
 
   /* ── mistakes-per-key bar chart ── */
   .prac-done-chart-wrap {
@@ -1186,6 +1196,45 @@
     from { transform: scaleY(0); opacity: 0; }
     to   { transform: scaleY(1); opacity: 1; }
   }
+
+  /* ── batch-done (continue/finish) screen ── */
+  .prac-batch-done {
+    position: absolute; inset: 0; z-index: 6;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1.1rem; padding: 2rem; background: var(--bg);
+    text-align: center;
+  }
+  .prac-batch-done.show { display: flex; animation: rowIn 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+  .prac-batch-emoji { font-size: 2.8rem; }
+  .prac-batch-title { font-size: 1.2rem; font-weight: 700; color: var(--text); }
+  .prac-batch-sub   { font-size: 0.8rem; color: var(--text-sub); max-width: 320px; line-height: 1.6; }
+  .prac-batch-count-row {
+    display: flex; align-items: center; gap: 0.6rem; justify-content: center;
+    font-size: 0.78rem; color: var(--text-sub);
+  }
+  .prac-batch-count-input {
+    width: 3.5rem; padding: 0.32rem 0.4rem;
+    background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px;
+    color: var(--text); font-family: 'Courier New', monospace;
+    font-size: 1rem; font-weight: 700; text-align: center;
+    transition: border-color var(--tr);
+  }
+  .prac-batch-count-input:focus { outline: none; border-color: var(--cyan); }
+
+  /* ── key count option row ── */
+  .prac-key-count-row {
+    display: flex; align-items: center; gap: 0.55rem;
+    flex-wrap: wrap; justify-content: center;
+  }
+  .prac-key-count-input {
+    width: 3.2rem; padding: 0.28rem 0.35rem;
+    background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px;
+    color: var(--text); font-family: 'Courier New', monospace;
+    font-size: 0.88rem; font-weight: 700; text-align: center;
+    transition: border-color var(--tr); display: none;
+  }
+  .prac-key-count-input:focus { outline: none; border-color: var(--cyan); }
+  .prac-key-count-input.visible { display: inline-block; }
 
 </style>
 </head>
@@ -1243,7 +1292,7 @@
 <!-- ══ PRACTICE OVERLAY ══ -->
 <div id="practiceOverlay" class="prac-overlay" style="display:none">
 
-  <!-- MIDI permission screen -->
+  <!-- MIDI permission screen / settings -->
   <div class="prac-midi-screen" id="pracMidiScreen">
     <div class="prac-midi-icon">🎹</div>
     <div class="prac-midi-title">מצב תרגול</div>
@@ -1252,10 +1301,39 @@
       חבר את הכלי ולחץ על הכפתור להתחלת התרגול.
     </div>
 
-    <!-- scope selector: all keys vs single key -->
+    <!-- mode selector -->
+    <div class="prac-opt-group" id="pracModeGroup" style="display:none">
+      <div class="prac-opt-label">מצב</div>
+      <div class="prac-opt-btns" id="pracModeBtns">
+        <button class="prac-opt-btn" data-pmode="major">Major</button>
+        <button class="prac-opt-btn" data-pmode="minor">Minor</button>
+        <button class="prac-opt-btn" data-pmode="both">Major + Minor</button>
+      </div>
+    </div>
+
+    <!-- chord type selector -->
+    <div class="prac-opt-group" id="pracCtypeGroup" style="display:none">
+      <div class="prac-opt-label">סוג אקורדים</div>
+      <div class="prac-opt-btns" id="pracCtypeBtns">
+        <button class="prac-opt-btn" data-pctype="triads">משולשים</button>
+        <button class="prac-opt-btn" data-pctype="sevenths">מרובעים</button>
+      </div>
+    </div>
+
+    <!-- scope: all / batch / single -->
     <div class="prac-scope-row" id="pracScopeRow" style="display:none">
       <button class="prac-scope-btn active" id="scopeAllBtn">כל הסולמות</button>
+      <button class="prac-scope-btn" id="scopeBatchBtn">מספר סולמות</button>
       <button class="prac-scope-btn" id="scopeSingleBtn">בחר סולם</button>
+    </div>
+
+    <!-- key count (shown in batch mode) -->
+    <div class="prac-opt-group" id="pracKeyCountGroup" style="display:none">
+      <div class="prac-opt-label">מספר סולמות לתרגול</div>
+      <div class="prac-key-count-row">
+        <input type="number" id="pracKeyCountInput" class="prac-key-count-input visible" min="2" max="13" value="3">
+        <span style="font-size:0.7rem;color:var(--text-dim)" id="pracKeyCountHint">מתוך 13</span>
+      </div>
     </div>
 
     <!-- key picker grid (shown when single-key mode selected) -->
@@ -1263,11 +1341,11 @@
       <div id="pracKeyPickerGrid"></div>
     </div>
 
-    <!-- key order selector (hidden in single-key mode) -->
+    <!-- key order selector -->
     <div class="prac-opt-group" id="pracKeyOrderGroup" style="display:none">
       <div class="prac-opt-label">סדר סולמות</div>
       <div class="prac-opt-btns" id="pracKeyOrderBtns">
-<button class="prac-opt-btn" data-order="circle_of_fifths">מעגל הקווינטות</button>
+        <button class="prac-opt-btn" data-order="circle_of_fifths">מעגל הקווינטות</button>
         <button class="prac-opt-btn" data-order="circle_of_fifths_inverse">מעגל ← הפוך</button>
         <button class="prac-opt-btn" data-order="difficulty_level">לפי קושי</button>
         <button class="prac-opt-btn" data-order="random">אקראי</button>
@@ -1278,8 +1356,8 @@
     <div class="prac-opt-group" id="pracChordOrderGroup" style="display:none">
       <div class="prac-opt-label">סדר אקורדים</div>
       <div class="prac-opt-btns" id="pracChordOrderBtns">
-<button class="prac-opt-btn" data-order="sequential">לפי הסדר</button>
-<button class="prac-opt-btn" data-order="random_progression">מהלך אקראי</button>
+        <button class="prac-opt-btn" data-order="sequential">לפי הסדר</button>
+        <button class="prac-opt-btn" data-order="random_progression">מהלך אקראי</button>
       </div>
     </div>
 
@@ -1310,7 +1388,7 @@
       <button class="prac-midi-btn" id="pracRequestMidi">בקש גישה ל-MIDI</button>
       <button class="prac-midi-btn" id="pracStartBtn" style="display:none">התחל ▶</button>
     </div>
-    <!-- device list (shown if multiple inputs found) -->
+    <!-- device list -->
     <div class="prac-device-list" id="pracDeviceList">
       <div class="prac-device-label">בחר מכשיר MIDI</div>
       <div id="pracDeviceCards"></div>
@@ -1391,6 +1469,32 @@
     <div class="prac-done-btns">
       <button class="prac-done-btn" id="pracRestartBtn">תרגול נוסף</button>
       <button class="prac-done-btn prac-challenge-btn" id="pracChallengeBtn" style="display:none">🎯 תרגל אקורדים מאתגרים</button>
+    </div>
+  </div>
+
+  <!-- batch-done / continue screen -->
+  <div class="prac-batch-done" id="pracBatchDone">
+    <div class="prac-batch-emoji">✅</div>
+    <div class="prac-batch-title" id="pracBatchTitle">הbatch הושלם!</div>
+    <div class="prac-batch-sub" id="pracBatchSub"></div>
+    <div class="prac-batch-count-row" id="pracBatchCountRow" style="display:none">
+      <span>כמה סולמות נוספים?</span>
+      <input type="number" id="pracBatchNextCount" class="prac-batch-count-input" min="1" max="13" value="3">
+    </div>
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center">
+      <button class="prac-done-btn" id="pracBatchContinueBtn" style="display:none">▶ המשך</button>
+      <button class="prac-done-btn" id="pracBatchFinishBtn">סיים וצפה בסטטיסטיקות</button>
+    </div>
+  </div>
+
+  <!-- resume prompt -->
+  <div class="prac-batch-done" id="pracResumePrompt">
+    <div class="prac-batch-emoji">⏸</div>
+    <div class="prac-batch-title">אתה באמצע תרגול</div>
+    <div class="prac-batch-sub" id="pracResumeSub"></div>
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center">
+      <button class="prac-done-btn" id="pracResumeYesBtn">↩ חזור לתרגול</button>
+      <button class="prac-done-btn" style="border-color:var(--border2);color:var(--text-sub)" id="pracResumeNoBtn">התחל מחדש</button>
     </div>
   </div>
 
@@ -1738,6 +1842,26 @@ const pracNotesHideInput = document.getElementById('pracNotesHideInput');
 const pracScaleOptGroup  = document.getElementById('pracScaleOptGroup');
 const pracTimingGroup    = document.getElementById('pracTimingGroup');
 const pracChordInstructions = document.getElementById('pracChordInstructions');
+// new: mode/ctype/batch/resume
+const pracModeGroup      = document.getElementById('pracModeGroup');
+const pracModeBtns       = document.getElementById('pracModeBtns');
+const pracCtypeGroup     = document.getElementById('pracCtypeGroup');
+const pracCtypeBtns      = document.getElementById('pracCtypeBtns');
+const scopeBatchBtn      = document.getElementById('scopeBatchBtn');
+const pracKeyCountGroup  = document.getElementById('pracKeyCountGroup');
+const pracKeyCountInput  = document.getElementById('pracKeyCountInput');
+const pracKeyCountHint   = document.getElementById('pracKeyCountHint');
+const pracBatchDone      = document.getElementById('pracBatchDone');
+const pracBatchTitle     = document.getElementById('pracBatchTitle');
+const pracBatchSub       = document.getElementById('pracBatchSub');
+const pracBatchCountRow  = document.getElementById('pracBatchCountRow');
+const pracBatchNextCount = document.getElementById('pracBatchNextCount');
+const pracBatchContinueBtn = document.getElementById('pracBatchContinueBtn');
+const pracBatchFinishBtn = document.getElementById('pracBatchFinishBtn');
+const pracResumePrompt   = document.getElementById('pracResumePrompt');
+const pracResumeSub      = document.getElementById('pracResumeSub');
+const pracResumeYesBtn   = document.getElementById('pracResumeYesBtn');
+const pracResumeNoBtn    = document.getElementById('pracResumeNoBtn');
 
 
 function exitPracticeIfOpen() {
@@ -1820,46 +1944,57 @@ const prac = {
   hintShown: false,
   locked: false,
   paused: false,
-  hintElapsed: 0,
-  hintStartedAt: null,
   hintRemainingMs: null,
   hintPausedAt: null,
-  currentNotesHintDelay: 5000,   // saved at timer start, used for pause calc
+  currentNotesHintDelay: 5000,
+  // timing (pausedMs excluded from elapsed)
   startTime: null,
-  mistakeCount: 0,
+  pausedMs: 0,
+  pauseStartTime: null,
+  // per-chord attempt tracking
+  chordAttempts: {},
+  chordResults:  {},
   keyMistakes: [],
-  chordTypeMistakes: {},
-  chordTypeExamples:  {},
   chordStartTime: null,
   totalChordTime: 0,
   totalChordsPlayed: 0,
-  scope: 'all',
+  // mode/ctype for practice (independent of topbar)
+  practiceMode: 'major',    // 'major' | 'minor' | 'both'
+  activeCtype:  'triads',   // 'triads' | 'sevenths' — fixed for session
+  activeMode:   'major',    // 'major' | 'minor' — updated per-key in both mode
+  // scope
+  scope: 'all',             // 'all' | 'batch' | 'single'
   singleKeyIdx: 0,
+  keyCount: 3,              // for batch mode
+  // pool for batch mode
+  sessionPool: [],          // full shuffled pool for session
+  sessionPoolRemaining: [], // keys not yet practiced
+  // ordering
   keyOrder:   'circle_of_fifths',
   chordOrder: 'sequential',
   pracKeySeq: [],
   currentProgression: [],
   // chord name hiding
-  nameHideDelay: 2,            // seconds before chord name is shown (0 = always shown)
-  notesHideDelay: 5,           // seconds before notes hint shown (after name revealed)
+  nameHideDelay: 2,
+  notesHideDelay: 5,
   nameRevealed: false,
   nameRevealTimer: null,
-  nameRevealStartedAt: null,
   nameRevealRemainingMs: null,
   // scale practice
   scalePracticeEnabled: true,
-  scaleSlots: [],              // [{noteName, pc, revealed}]
+  scaleSlots: [],
   scaleScalePCs: new Set(),
   scaleNeededPCCount: new Map(),
   // challenge mode
-  mode: 'normal',
-  challengeChords: [],
+  phase: 'idle',
+  challengeTypes: [],
   challengeRound: 0,
-  challengeRoundSeq: [],
+  challengeSeq: [],
+  challengePos: 0,
   challengeMistakes: 0,
   challengeCorrect: 0,
-  challengeChordTime: 0,
-  challengeChordStartTime: null,
+  challengeTime: 0,
+  challengeStartTime: null,
   midiJustApproved: false,
   streak: 0,
 };
@@ -1981,15 +2116,14 @@ function buildDeviceCards(inputs) {
 // Returns the array of keys that are active in this session
 function getPracKeys() {
   if (prac.scope === 'single') {
-    return [DATA[currentCtype][currentMode][prac.singleKeyIdx]];
+    return [DATA[prac.activeCtype][prac.activeMode][prac.singleKeyIdx]];
   }
-  return prac.pracKeySeq.length ? prac.pracKeySeq : DATA[currentCtype][currentMode];
+  return prac.pracKeySeq.length ? prac.pracKeySeq : DATA[prac.activeCtype][prac.activeMode];
 }
 function getPracKeyData() { return getPracKeys()[prac.keyIdx]; }
 function getSeqChords() {
   const kd = getPracKeyData();
   if (prac.chordOrder === 'random_progression' && prac.currentProgression.length) {
-    // Map 1-based degree indices to chord objects
     return prac.currentProgression.map((degIdx, pos) => ({
       ...kd.chords[degIdx - 1],
       isRepeatI: pos === prac.currentProgression.length - 1
@@ -2005,8 +2139,8 @@ function getCurrentTarget() {
 // ── Open practice overlay ──
 // ── Build key-picker grid ──
 function buildKeyPickerGrid() {
-  const all = DATA[currentCtype][currentMode];
-  const accentVar = currentMode === 'major' ? 'var(--pink)' : 'var(--cyan)';
+  const all = DATA[prac.activeCtype][prac.activeMode];
+  const accentVar = prac.activeMode === 'major' ? 'var(--pink)' : 'var(--cyan)';
   pracKeyPickerGrid.innerHTML = '';
   all.forEach((kd, idx) => {
     const btn = document.createElement('button');
@@ -2022,50 +2156,91 @@ function buildKeyPickerGrid() {
   pracKeyPicker.style.setProperty('--prac-key-col', accentVar);
 }
 
-openPracticeBtn.addEventListener('click', () => {
-  practiceOverlay.style.display = 'flex';
-  pracDoneScreen.classList.remove('show');
-  practiceOverlay.style.setProperty('--prac-key-col',
-    currentMode === 'major' ? 'var(--pink)' : 'var(--cyan)');
+function syncSettingsUI() {
+  const isBoth   = prac.practiceMode === 'both';
+  const isSingle = prac.scope === 'single';
+  const isBatch  = prac.scope === 'batch';
 
-  // Always land on settings screen
-  pracMidiScreen.style.display = 'flex';
-  pracTopbar.style.display     = 'none';
-  pracMain.style.display       = 'none';
+  // Mode buttons
+  pracModeBtns.querySelectorAll('.prac-opt-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.pmode === prac.practiceMode));
 
-  // Show/hide MIDI vs Start button based on existing access
-  // After first MIDI approval we go directly to practice (midiJustApproved=true).
-  // On subsequent open-from-home, midiJustApproved=false → show התחל button.
-  const hasMidi = !!prac.midiAccess;
-  pracRequestMidi.style.display = hasMidi ? 'none' : '';
-  pracStartBtn.style.display    = hasMidi ? '' : 'none';
+  // Ctype buttons
+  pracCtypeBtns.querySelectorAll('.prac-opt-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.pctype === prac.activeCtype));
 
-  // Reset scope to 'all'
-  prac.scope = 'all';
-  scopeAllBtn.classList.add('active');
-  scopeSingleBtn.classList.remove('active');
-  pracKeyPicker.style.display = 'none';
-  pracScopeRow.style.display  = 'flex';
-  buildKeyPickerGrid();
+  // Scope buttons — no single in 'both' mode
+  scopeSingleBtn.style.display = isBoth ? 'none' : '';
+  scopeAllBtn.classList.toggle('active', prac.scope === 'all');
+  scopeBatchBtn.classList.toggle('active', isBatch);
+  scopeSingleBtn.classList.toggle('active', isSingle);
 
-  // Show order selectors (key order only when scope=all)
-  pracKeyOrderGroup.style.display   = 'flex';
+  // Key count group
+  pracKeyCountGroup.style.display = isBatch ? 'flex' : 'none';
+  if (isBatch) {
+    const maxKeys = isBoth
+      ? DATA[prac.activeCtype]['major'].length + DATA[prac.activeCtype]['minor'].length
+      : (DATA[prac.activeCtype][prac.practiceMode]?.length || 13);
+    pracKeyCountInput.max   = maxKeys;
+    pracKeyCountInput.value = Math.min(prac.keyCount, maxKeys);
+    pracKeyCountHint.textContent = `מתוך ${maxKeys}`;
+  }
+
+  // Key picker
+  pracKeyPicker.style.display = isSingle ? '' : 'none';
+  if (isSingle) buildKeyPickerGrid();
+
+  // Key order — hidden in both/batch/single
+  pracKeyOrderGroup.style.display   = (!isBoth && !isSingle && !isBatch) ? 'flex' : 'none';
   pracChordOrderGroup.style.display = 'flex';
   pracScaleOptGroup.style.display   = 'flex';
   pracTimingGroup.style.display     = 'flex';
 
-  // Sync scale toggle button
-  pracScaleToggleBtn.textContent = prac.scalePracticeEnabled ? '✓ מופעל' : '○ כבוי';
-  pracScaleToggleBtn.classList.toggle('active', prac.scalePracticeEnabled);
-
-  // Sync timing inputs
-  pracNameHideInput.value  = prac.nameHideDelay;
-  pracNotesHideInput.value = prac.notesHideDelay;
-
-  // Sync order button active states
+  // In 'both' mode, force random order
+  if (isBoth) prac.keyOrder = 'random';
   syncOrderBtns();
 
-  // Reset error/device state
+  pracScaleToggleBtn.textContent = prac.scalePracticeEnabled ? '✓ מופעל' : '○ כבוי';
+  pracScaleToggleBtn.classList.toggle('active', prac.scalePracticeEnabled);
+  pracNameHideInput.value  = prac.nameHideDelay;
+  pracNotesHideInput.value = prac.notesHideDelay;
+}
+
+openPracticeBtn.addEventListener('click', () => {
+  practiceOverlay.style.display = 'flex';
+  pracDoneScreen.classList.remove('show');
+  pracBatchDone.classList.remove('show');
+
+  // Check for resumable session
+  const saved = loadPracState();
+  if (saved) {
+    const modeLabel = saved.practiceMode === 'both' ? 'Major+Minor' : saved.practiceMode === 'major' ? 'Major' : 'Minor';
+    const ctypeLabel = saved.activeCtype === 'triads' ? 'משולשים' : 'מרובעים';
+    const doneCount  = Object.keys(saved.chordResults || {}).length;
+    pracResumeSub.textContent = `${modeLabel} · ${ctypeLabel} · ${doneCount} אקורדים תורגלו`;
+    pracMidiScreen.style.display = 'none';
+    pracTopbar.style.display     = 'none';
+    pracMain.style.display       = 'none';
+    pracResumePrompt.classList.add('show');
+    return;
+  }
+
+  // Normal settings screen
+  pracMidiScreen.style.display = 'flex';
+  pracTopbar.style.display     = 'none';
+  pracMain.style.display       = 'none';
+  pracResumePrompt.classList.remove('show');
+
+  const hasMidi = !!prac.midiAccess;
+  pracRequestMidi.style.display = hasMidi ? 'none' : '';
+  pracStartBtn.style.display    = hasMidi ? '' : 'none';
+
+  pracScopeRow.style.display  = 'flex';
+  pracModeGroup.style.display = 'flex';
+  pracCtypeGroup.style.display = 'flex';
+
+  syncSettingsUI();
+
   pracMidiErr.style.display = 'none';
   pracDeviceList.classList.remove('show');
   pracMidiDesc.textContent = hasMidi
@@ -2078,10 +2253,10 @@ pracPauseBtn.addEventListener('click', () => {
   if (!prac.paused) {
     prac.paused = true;
     prac.locked = true;
+    prac.pauseStartTime = Date.now();
     pracPauseBtn.textContent = '▶ המשך';
     pracPauseBtn.classList.add('paused');
 
-    // Freeze name-reveal timer
     if (prac.nameRevealTimer) {
       clearTimeout(prac.nameRevealTimer);
       prac.nameRevealTimer = null;
@@ -2089,8 +2264,6 @@ pracPauseBtn.addEventListener('click', () => {
       const nameDelay = (prac.nameHideDelay || 0) * 1000;
       prac.nameRevealRemainingMs = Math.max(0, nameDelay - elapsed);
     }
-
-    // Freeze notes-hint timer
     if (prac.hintTimer) {
       clearTimeout(prac.hintTimer);
       prac.hintTimer = null;
@@ -2107,17 +2280,22 @@ pracPauseBtn.addEventListener('click', () => {
   } else {
     prac.paused = false;
     prac.locked = false;
+    if (prac.pauseStartTime) {
+      prac.pausedMs += Date.now() - prac.pauseStartTime;
+      prac.pauseStartTime = null;
+    }
     pracPauseBtn.textContent = '⏸ השהייה';
     pracPauseBtn.classList.remove('paused');
 
-    // Resume name-reveal timer
-    if (!prac.nameRevealed && prac.nameRevealRemainingMs !== null) {
+    if (prac.phase === 'scale_practice') {
+      pracScaleStatus.textContent = 'נגן את כל תווי הסולם';
+      pracScaleStatus.className   = 'prac-scale-status';
+    } else if (!prac.nameRevealed && prac.nameRevealRemainingMs !== null) {
       prac.nameRevealTimer = setTimeout(revealChordName, prac.nameRevealRemainingMs);
       prac.nameRevealRemainingMs = null;
       setStatus('נחש את שם האקורד', '');
     } else {
       setStatus('נגן את האקורד המסומן', '');
-      // Resume notes-hint timer
       const remaining = prac.hintRemainingMs ?? (prac.notesHideDelay || 0) * 1000;
       requestAnimationFrame(() => requestAnimationFrame(() => {
         pracHintBar.style.transition = `transform ${remaining}ms linear`;
@@ -2131,21 +2309,33 @@ pracPauseBtn.addEventListener('click', () => {
   }
 });
 
-// ── Scope buttons ──
-scopeAllBtn.addEventListener('click', () => {
-  prac.scope = 'all';
-  scopeAllBtn.classList.add('active');
-  scopeSingleBtn.classList.remove('active');
-  pracKeyPicker.style.display = 'none';
-  pracKeyOrderGroup.style.display = 'flex';
+// ── Mode selector ──
+pracModeBtns.addEventListener('click', e => {
+  const btn = e.target.closest('.prac-opt-btn');
+  if (!btn) return;
+  prac.practiceMode = btn.dataset.pmode;
+  if (prac.practiceMode === 'both') { prac.scope = 'all'; prac.keyOrder = 'random'; }
+  prac.activeMode = prac.practiceMode === 'both' ? 'major' : prac.practiceMode;
+  syncSettingsUI(); saveSettings();
 });
-scopeSingleBtn.addEventListener('click', () => {
-  prac.scope = 'single';
-  scopeSingleBtn.classList.add('active');
-  scopeAllBtn.classList.remove('active');
-  buildKeyPickerGrid();
-  pracKeyPicker.style.display = '';
-  pracKeyOrderGroup.style.display = 'none';
+
+// ── Chord type selector ──
+pracCtypeBtns.addEventListener('click', e => {
+  const btn = e.target.closest('.prac-opt-btn');
+  if (!btn) return;
+  prac.activeCtype = btn.dataset.pctype;
+  syncSettingsUI(); saveSettings();
+});
+
+// ── Scope buttons ──
+scopeAllBtn.addEventListener('click', () => { prac.scope = 'all'; syncSettingsUI(); });
+scopeBatchBtn.addEventListener('click', () => { prac.scope = 'batch'; syncSettingsUI(); });
+scopeSingleBtn.addEventListener('click', () => { prac.scope = 'single'; syncSettingsUI(); });
+
+pracKeyCountInput.addEventListener('change', () => {
+  prac.keyCount = Math.max(2, parseInt(pracKeyCountInput.value) || 3);
+  pracKeyCountInput.value = prac.keyCount;
+  saveSettings();
 });
 
 // ════════════════════════════════════════════
@@ -2161,6 +2351,10 @@ function saveSettings() {
       scalePracticeEnabled: prac.scalePracticeEnabled,
       nameHideDelay:        prac.nameHideDelay,
       notesHideDelay:       prac.notesHideDelay,
+      practiceMode:         prac.practiceMode,
+      activeCtype:          prac.activeCtype,
+      scope:                prac.scope,
+      keyCount:             prac.keyCount,
     }));
   } catch(e) {}
 }
@@ -2173,6 +2367,11 @@ function loadSettings() {
     if (s.scalePracticeEnabled !== undefined) prac.scalePracticeEnabled = s.scalePracticeEnabled;
     if (s.nameHideDelay  !== undefined) prac.nameHideDelay  = s.nameHideDelay;
     if (s.notesHideDelay !== undefined) prac.notesHideDelay = s.notesHideDelay;
+    if (s.practiceMode)  prac.practiceMode = s.practiceMode;
+    if (s.activeCtype)   prac.activeCtype  = s.activeCtype;
+    if (s.scope)         prac.scope        = s.scope;
+    if (s.keyCount)      prac.keyCount     = s.keyCount;
+    prac.activeMode = prac.practiceMode === 'both' ? 'major' : prac.practiceMode;
   } catch(e) {}
 }
 
@@ -2306,7 +2505,7 @@ function handleMidi(event) {
 function getScaleNotes(kd) {
   const seen = new Map();
   const excl = new Set(['V','V7']);
-  const chords = currentMode === 'minor'
+  const chords = prac.activeMode === 'minor'
     ? kd.chords.filter(c => !excl.has(c.degree))
     : kd.chords;
   for (const ch of chords)
@@ -2453,6 +2652,117 @@ function updateChordInstructions() {
   pracChordInstructions.innerHTML = txt;
 }
 
+// ════════════════════════════════════════════
+//  RECORDS (localStorage)
+// ════════════════════════════════════════════
+const RECORDS_KEY = 'diatonic_records';
+const RESUME_KEY  = 'diatonic_resume';
+
+function getRecordKey() {
+  // e.g. "all_major_triads", "batch_4_minor_sevenths", "single_Am_triads"
+  const mode  = prac.practiceMode; // 'major'|'minor'|'both'
+  const ctype = prac.activeCtype;
+  if (prac.scope === 'single') {
+    const kd = DATA[ctype][mode === 'both' ? 'major' : mode][prac.singleKeyIdx];
+    return `single_${kd.key}_${ctype}`;
+  }
+  if (prac.scope === 'batch') return `batch_${getPracKeys().length}_${mode}_${ctype}`;
+  return `all_${mode}_${ctype}`;
+}
+
+function loadRecords() {
+  try { return JSON.parse(localStorage.getItem(RECORDS_KEY) || '{}'); }
+  catch(e) { return {}; }
+}
+
+function saveRecord(key, type, value) {
+  const records = loadRecords();
+  if (!records[key]) records[key] = {};
+  records[key][type] = value;
+  try { localStorage.setItem(RECORDS_KEY, JSON.stringify(records)); } catch(e) {}
+}
+
+function formatTimeStr(seconds) {
+  const m = Math.floor(seconds / 60), s = seconds % 60;
+  return m > 0 ? `${m}:${String(s).padStart(2,'0')}` : `0:${String(s).padStart(2,'0')}`;
+}
+
+function getElapsed() {
+  const extra = prac.pauseStartTime ? Date.now() - prac.pauseStartTime : 0;
+  return Math.round((Date.now() - prac.startTime - prac.pausedMs - extra) / 1000);
+}
+
+// ════════════════════════════════════════════
+//  SESSION SAVE / RESUME
+// ════════════════════════════════════════════
+function savePracState() {
+  if (prac.phase !== 'practicing') return;
+  try {
+    const state = {
+      practiceMode: prac.practiceMode,
+      activeCtype:  prac.activeCtype,
+      scope:        prac.scope,
+      keyOrder:     prac.keyOrder,
+      chordOrder:   prac.chordOrder,
+      keyCount:     prac.keyCount,
+      singleKeyIdx: prac.singleKeyIdx,
+      keyIdx:       prac.keyIdx,
+      pracKeySeq:   prac.pracKeySeq.map(kd => ({ key: kd.key, pracMode: kd.pracMode })),
+      sessionPoolRemaining: prac.sessionPoolRemaining.map(kd => ({ key: kd.key, pracMode: kd.pracMode })),
+      chordResults: prac.chordResults,
+      keyMistakes:  prac.keyMistakes,
+      totalChordTime:    prac.totalChordTime,
+      totalChordsPlayed: prac.totalChordsPlayed,
+      startTime:    prac.startTime,
+      pausedMs:     prac.pausedMs,
+      savedAt:      Date.now(),
+    };
+    localStorage.setItem(RESUME_KEY, JSON.stringify(state));
+  } catch(e) {}
+}
+
+function clearPracState() {
+  try { localStorage.removeItem(RESUME_KEY); } catch(e) {}
+}
+
+function loadPracState() {
+  try { return JSON.parse(localStorage.getItem(RESUME_KEY) || 'null'); }
+  catch(e) { return null; }
+}
+
+function restoreKeySeq(saved, ctype) {
+  // Re-hydrate key objects from saved {key, pracMode}
+  const result = [];
+  for (const s of saved) {
+    const mode = s.pracMode || 'major';
+    const found = DATA[ctype][mode].find(kd => kd.key === s.key);
+    if (found) result.push({ ...found, pracMode: mode });
+  }
+  return result;
+}
+
+// Call when finishing a key (or on partial exit) to accumulate results
+function commitKeyResults() {
+  let keyWrong = 0;
+  for (const [compKey, attempt] of Object.entries(prac.chordAttempts)) {
+    prac.chordResults[compKey] = attempt;
+    if (attempt.wrong) keyWrong++;
+  }
+  if (prac.keyMistakes && prac.keyIdx < prac.keyMistakes.length) {
+    prac.keyMistakes[prac.keyIdx] = keyWrong;
+  }
+}
+
+// Mark a chord attempt for the current key
+function markAttempt(tgt, wasWrong) {
+  const kd = getPracKeyData();
+  const compKey = `${kd.key}_${tgt.degree}`;
+  if (!prac.chordAttempts[compKey]) {
+    prac.chordAttempts[compKey] = { wrong: false, chord: tgt, keyLabel: kd.key };
+  }
+  if (wasWrong) prac.chordAttempts[compKey].wrong = true;
+}
+
 function updateStreakDisplay() {
   if (prac.streak >= 3) {
     const fire = prac.streak >= 10 ? '🔥🔥' : prac.streak >= 5 ? '🔥' : '⚡';
@@ -2466,10 +2776,12 @@ function updateStreakDisplay() {
 }
 
 // ── Start / restart full practice session ──
-function startPractice() {
+function startPractice(resumeState) {
+  clearPracState();
   prac.keyIdx = 0;
   prac.startTime = Date.now();
-  prac.mistakeCount = 0;
+  prac.pausedMs  = 0;
+  prac.pauseStartTime = null;
   prac.held.clear();
   prac.notesAtStart.clear();
   prac.playedPCs.clear();
@@ -2477,59 +2789,105 @@ function startPractice() {
   prac.locked = false;
   prac.phase = 'practicing';
   prac.paused = false;
-  prac.chordTypeMistakes = {};
+  prac.chordAttempts = {};
+  prac.chordResults  = {};
   prac.streak = 0;
+  prac.activeCtype = prac.activeCtype; // set from settings
 
-  // Build ordered key sequence for this session
-  const all = DATA[currentCtype][currentMode];
-  if (prac.scope === 'single') {
-    prac.pracKeySeq = [all[prac.singleKeyIdx]];
-  } else if (prac.keyOrder === 'random') {
-    prac.pracKeySeq = shuffleArray([...all]);
-  } else if (KEY_ORDER_SEQS[prac.keyOrder]) {
-    const seq = KEY_ORDER_SEQS[prac.keyOrder][currentMode];
-    prac.pracKeySeq = seq
-      .map(name => all.find(kd => kd.key === name))
-      .filter(Boolean);
-    all.forEach(kd => { if (!prac.pracKeySeq.includes(kd)) prac.pracKeySeq.push(kd); });
+  if (resumeState) {
+    // Restore from saved state
+    prac.activeCtype  = resumeState.activeCtype;
+    prac.practiceMode = resumeState.practiceMode;
+    prac.scope        = resumeState.scope;
+    prac.keyOrder     = resumeState.keyOrder;
+    prac.chordOrder   = resumeState.chordOrder;
+    prac.keyCount     = resumeState.keyCount;
+    prac.singleKeyIdx = resumeState.singleKeyIdx;
+    prac.pracKeySeq   = restoreKeySeq(resumeState.pracKeySeq, resumeState.activeCtype);
+    prac.sessionPoolRemaining = restoreKeySeq(resumeState.sessionPoolRemaining || [], resumeState.activeCtype);
+    prac.chordResults = resumeState.chordResults || {};
+    prac.keyMistakes  = resumeState.keyMistakes || [];
+    prac.totalChordTime    = resumeState.totalChordTime || 0;
+    prac.totalChordsPlayed = resumeState.totalChordsPlayed || 0;
+    // Adjust startTime to account for pause
+    const pausedAlready = resumeState.pausedMs || 0;
+    prac.startTime = Date.now() - (resumeState.savedAt - resumeState.startTime) - pausedAlready;
+    prac.pausedMs  = 0;
+    prac.keyIdx    = resumeState.keyIdx;
+    // Update activeMode from first key in sequence
+    const kd = prac.pracKeySeq[prac.keyIdx];
+    prac.activeMode = kd ? (kd.pracMode || prac.practiceMode) : prac.practiceMode;
   } else {
-    prac.pracKeySeq = [...all];
+    // Fresh start — build key sequence
+    prac.activeMode = (prac.practiceMode === 'both') ? 'major' : prac.practiceMode;
+    const majorAll = DATA[prac.activeCtype]['major'];
+    const minorAll = DATA[prac.activeCtype]['minor'];
+
+    if (prac.practiceMode === 'both') {
+      // Tag each key with its mode
+      const taggedMajor = majorAll.map(kd => ({ ...kd, pracMode: 'major' }));
+      const taggedMinor = minorAll.map(kd => ({ ...kd, pracMode: 'minor' }));
+      const combined = shuffleArray([...taggedMajor, ...taggedMinor]);
+      if (prac.scope === 'batch') {
+        prac.sessionPoolRemaining = [...combined];
+        prac.pracKeySeq = prac.sessionPoolRemaining.splice(0, Math.min(prac.keyCount, prac.sessionPoolRemaining.length));
+      } else {
+        prac.sessionPoolRemaining = [];
+        prac.pracKeySeq = combined;
+      }
+    } else {
+      const all = DATA[prac.activeCtype][prac.practiceMode].map(kd => ({ ...kd, pracMode: prac.practiceMode }));
+      if (prac.scope === 'single') {
+        prac.pracKeySeq = [all[prac.singleKeyIdx]];
+        prac.sessionPoolRemaining = [];
+      } else if (prac.scope === 'batch') {
+        const shuffled = shuffleArray([...all]);
+        prac.sessionPoolRemaining = [...shuffled];
+        prac.pracKeySeq = prac.sessionPoolRemaining.splice(0, Math.min(prac.keyCount, prac.sessionPoolRemaining.length));
+      } else if (prac.keyOrder === 'random') {
+        prac.pracKeySeq = shuffleArray([...all]);
+        prac.sessionPoolRemaining = [];
+      } else if (KEY_ORDER_SEQS[prac.keyOrder]) {
+        const seq = KEY_ORDER_SEQS[prac.keyOrder][prac.practiceMode];
+        prac.pracKeySeq = seq.map(name => all.find(kd => kd.key === name)).filter(Boolean);
+        all.forEach(kd => { if (!prac.pracKeySeq.find(k => k.key === kd.key)) prac.pracKeySeq.push(kd); });
+        prac.sessionPoolRemaining = [];
+      } else {
+        prac.pracKeySeq = [...all];
+        prac.sessionPoolRemaining = [];
+      }
+    }
+
+    prac.keyMistakes = new Array(prac.pracKeySeq.length).fill(0);
+    prac.totalChordTime    = 0;
+    prac.totalChordsPlayed = 0;
+    prac.chordStartTime    = null;
   }
 
-  prac.mode = 'normal';
-  prac.chordTypeMistakes = {};
-  prac.chordTypeExamples  = {};
   updateChordInstructions();
-  // tracking
-  const keys = getPracKeys();
-  prac.keyMistakes      = new Array(keys.length).fill(0);
-  prac.totalChordTime   = 0;
-  prac.totalChordsPlayed= 0;
-  prac.chordStartTime   = null;
 
   pracMidiScreen.style.display = 'none';
+  pracBatchDone.classList.remove('show');
   pracTopbar.style.display     = 'flex';
   pracMain.style.display       = 'flex';
   pracDoneScreen.classList.remove('show');
   clearVelPanel();
   startVelPrune();
 
-  const modeStr = currentMode === 'major' ? 'Major' : 'Minor';
-  const typeStr = currentCtype === 'triads' ? 'Triads' : '7th Chords';
-  const scopeStr = prac.scope === 'single' ? ` · ${getPracKeys()[0].key}` : '';
+  const modeStr = prac.practiceMode === 'both' ? 'Major+Minor' : prac.practiceMode === 'major' ? 'Major' : 'Minor';
+  const typeStr = prac.activeCtype === 'triads' ? 'Triads' : '7th Chords';
+  const scopeStr = prac.scope === 'single' ? ` · ${getPracKeys()[0].key}` : prac.scope === 'batch' ? ` · ${getPracKeys().length} סולמות` : '';
   const orderStr = prac.chordOrder === 'random_progression' ? ' · מהלך אקראי' : '';
   pracModeBadge.textContent = `${modeStr} · ${typeStr}${scopeStr}${orderStr}`;
 
-  practiceOverlay.style.setProperty('--prac-key-col',
-    currentMode === 'major' ? 'var(--pink)' : 'var(--cyan)');
-
-  startKey(0);
+  startKey(prac.keyIdx);
 }
 
 function startKey(ki) {
   const doStart = () => {
     prac.keyIdx   = ki;
     prac.chordIdx = 0;
+    prac.chordAttempts = {};
     prac.held.clear();
     prac.notesAtStart.clear();
     prac.playedPCs.clear();
@@ -2538,8 +2896,12 @@ function startKey(ki) {
     clearTimeout(prac.nameRevealTimer);
     prac.nameRevealTimer = null;
 
+    const kd = getPracKeyData();
+    // In 'both' mode, each key carries its own pracMode
+    prac.activeMode = kd.pracMode || prac.practiceMode;
+
     if (prac.chordOrder === 'random_progression') {
-      const pool = CHORD_PROGRESSIONS[currentMode];
+      const pool = CHORD_PROGRESSIONS[prac.activeMode];
       prac.currentProgression = pool[Math.floor(Math.random() * pool.length)];
     } else {
       prac.currentProgression = [];
@@ -2547,8 +2909,13 @@ function startKey(ki) {
 
     const keys = getPracKeys();
     pracProgressTxt.textContent = `סולם ${ki + 1} מתוך ${keys.length}`;
-    const kd = getPracKeyData();
-    pracKeyName.textContent = kd.key + ' ' + (currentMode === 'major' ? 'Major' : 'Minor');
+
+    const modeLabel = prac.activeMode === 'major' ? 'Major' : 'Minor';
+    pracKeyName.textContent = kd.key + ' ' + modeLabel;
+
+    // Update overlay accent color per key mode
+    practiceOverlay.style.setProperty('--prac-key-col',
+      prac.activeMode === 'major' ? 'var(--pink)' : 'var(--cyan)');
 
     pracMain.classList.remove('prac-key-fade-out', 'prac-key-fade-in');
     requestAnimationFrame(() => requestAnimationFrame(() => pracMain.classList.add('prac-key-fade-in')));
@@ -2563,6 +2930,9 @@ function startKey(ki) {
       renderSeq();
       showCurrentChord();
     }
+
+    // Save state after entering a new key
+    savePracState();
   };
 
   if (ki === 0) {
@@ -2584,7 +2954,7 @@ function renderSeq() {
       isCurrent ? 'current' : '',
       isRepeat ? 'repeat-i' : ''
     ].filter(Boolean).join(' ');
-    const degreeLabel = isRepeat ? (currentMode === 'minor' ? 'i' : 'I') : ch.degree;
+    const degreeLabel = isRepeat ? (prac.activeMode === 'minor' ? 'i' : 'I') : ch.degree;
     // Show real name only for done chips; future/current show placeholder
     const nameLabel = isDone ? shortName(ch.name) : '?';
     return `<div class="${classes}">
@@ -2701,9 +3071,15 @@ function onCorrect() {
   prac.streak++;
   updateStreakDisplay();
   prac.locked = true;
-  // save this chord's PCs so the next chord can tolerate them as leftovers
-  prac.prevChordPCs = new Set(getCurrentTarget().notes.map(noteNameToPC));
-  // record chord time
+
+  // Cancel name-reveal timer so next chord doesn't get revealed for wrong chord
+  clearTimeout(prac.nameRevealTimer);
+  prac.nameRevealTimer = null;
+
+  const tgt = getCurrentTarget();
+  markAttempt(tgt, false);
+
+  prac.prevChordPCs = new Set(tgt.notes.map(noteNameToPC));
   if (prac.chordStartTime) {
     const elapsed = Date.now() - prac.chordStartTime;
     prac.totalChordTime += elapsed;
@@ -2719,13 +3095,21 @@ function onCorrect() {
   const isLast = prac.chordIdx === seq.length - 1;
 
   if (isLast) {
+    commitKeyResults();
     setStatus('✓ סולם הושלם! 🎉', 'ok');
     renderSeq();
 
     prac.resetTimer = setTimeout(() => {
       const keys = getPracKeys();
       if (prac.keyIdx + 1 >= keys.length) {
-        showDone();
+        // Batch mode: check if more keys remain
+        if (prac.scope === 'batch' && prac.sessionPoolRemaining.length > 0) {
+          showBatchDone();
+        } else if (prac.scope === 'batch' && prac.sessionPoolRemaining.length === 0) {
+          showAllDone();
+        } else {
+          showDone();
+        }
       } else {
         startKey(prac.keyIdx + 1);
       }
@@ -2743,19 +3127,11 @@ function onWrong() {
   prac.streak = 0;
   updateStreakDisplay();
   prac.locked = true;
-  prac.mistakeCount++;
-  // per-key mistake counter
-  if (prac.keyMistakes && prac.keyIdx < prac.keyMistakes.length)
-    prac.keyMistakes[prac.keyIdx]++;
-  // track per chord-type mistakes (by degree, across all keys)
-  {
-    const tgt = getCurrentTarget();
-    if (tgt && tgt.degree) {
-      prac.chordTypeMistakes[tgt.degree] = (prac.chordTypeMistakes[tgt.degree] || 0) + 1;
-      if (!prac.chordTypeExamples[tgt.degree]) prac.chordTypeExamples[tgt.degree] = tgt;
-    }
-  }
-  prac.chordStartTime = null; // reset chord timer — will restart at showCurrentChord
+
+  const tgt = getCurrentTarget();
+  markAttempt(tgt, true);  // mark as wrong
+
+  prac.chordStartTime = null;
   clearHintTimer();
   clearTimeout(prac.resetTimer);
   practiceOverlay.classList.remove('prac-correct');
@@ -2764,7 +3140,6 @@ function onWrong() {
   setStatus('✗ לא נכון — חוזרים לתחילת הסולם', 'err');
 
   prac.resetTimer = setTimeout(() => {
-    // restart key from degree I
     prac.chordIdx = 0;
     prac.held.clear();
     prac.notesAtStart.clear();
@@ -2776,47 +3151,65 @@ function onWrong() {
 }
 
 function showDone(partial) {
-  const elapsed  = Math.round((Date.now() - prac.startTime) / 1000);
-  const mins     = Math.floor(elapsed / 60);
-  const secs     = elapsed % 60;
-  const timeStr  = mins > 0 ? `${mins}:${String(secs).padStart(2,'0')}` : `0:${String(secs).padStart(2,'0')}`;
-  const keys     = getPracKeys();
-  const modeStr  = currentMode === 'major' ? 'Major' : 'Minor';
-  const typeStr  = currentCtype === 'triads' ? 'טריאדות' : 'אקורדים שביעיים';
+  if (partial) commitKeyResults();
 
-  // totals
-  const totalCorrect  = prac.totalChordsPlayed;
-  const totalAttempts = totalCorrect + prac.mistakeCount;
-  const pctSuccess    = totalAttempts > 0
-    ? Math.round((totalCorrect / totalAttempts) * 100) : 100;
-  const avgMs  = totalCorrect > 0 ? prac.totalChordTime / totalCorrect : 0;
+  const elapsed  = getElapsed();
+  const timeStr  = formatTimeStr(elapsed);
+  const keys     = getPracKeys();
+  const modeStr  = prac.practiceMode === 'both' ? 'Major+Minor' : prac.practiceMode === 'major' ? 'Major' : 'Minor';
+  const typeStr  = prac.activeCtype === 'triads' ? 'טריאדות' : 'אקורדים שביעיים';
+
+  const allResults   = Object.values(prac.chordResults);
+  const totalPlayed  = allResults.length;
+  const mistakeCount = allResults.filter(r => r.wrong).length;
+  const successCount = totalPlayed - mistakeCount;
+  const pctSuccess   = totalPlayed > 0 ? Math.round((successCount / totalPlayed) * 100) : 100;
+  const avgMs  = prac.totalChordsPlayed > 0 ? prac.totalChordTime / prac.totalChordsPlayed : 0;
   const avgSec = (avgMs / 1000).toFixed(1);
 
-  // description line
+  // Records — only for full non-partial sessions
+  const recKey  = getRecordKey();
+  const records = loadRecords();
+  const rec     = records[recKey] || {};
+  let newAccRecord = false, newTimeRecord = false;
+  if (!partial) {
+    if (rec.accuracy === undefined || pctSuccess > rec.accuracy) {
+      newAccRecord = true; saveRecord(recKey, 'accuracy', pctSuccess);
+    }
+    if (rec.time === undefined || elapsed < rec.time) {
+      newTimeRecord = true; saveRecord(recKey, 'time', elapsed);
+    }
+  }
+
   const scopeDesc = prac.scope === 'single'
     ? `סולם ${keys[0].key} ${modeStr} (${typeStr})`
     : `${keys.length} סולמות ${modeStr} (${typeStr})`;
   pracDoneDesc.textContent =
     `${scopeDesc} · ${timeStr}` +
-    (prac.mistakeCount === 0 && !partial ? ' · ללא טעויות! 🎯' : '') +
+    (mistakeCount === 0 && !partial ? ' · ללא טעויות! 🎯' : '') +
     (partial ? ' (תרגול חלקי)' : '');
 
-  // stat pills
   const stats = [
-    { val: timeStr,         lbl: 'זמן כולל' },
-    { val: totalCorrect,    lbl: 'אקורדים' },
-    { val: `${pctSuccess}%`,lbl: 'הצלחה' },
-    { val: `${avgSec}ש`,    lbl: 'ממוצע/אקורד' },
-    { val: prac.mistakeCount, lbl: 'טעויות' },
+    { val: timeStr,        lbl: 'זמן כולל',
+      rec: !partial ? (newTimeRecord ? 'new' : rec.time !== undefined ? formatTimeStr(rec.time) : null) : null },
+    { val: totalPlayed,    lbl: 'אקורדים' },
+    { val: `${pctSuccess}%`, lbl: 'הצלחה',
+      rec: !partial ? (newAccRecord ? 'new' : rec.accuracy !== undefined ? `${rec.accuracy}%` : null) : null },
+    { val: `${avgSec}ש`,   lbl: 'ממוצע/אקורד' },
+    { val: mistakeCount,   lbl: 'טעויות' },
   ];
-  pracDoneStats.innerHTML = stats.map((s, i) =>
-    `<div class="prac-stat-pill" style="--si:${i}">
+  pracDoneStats.innerHTML = stats.map((s, i) => {
+    const isNewRec = s.rec === 'new';
+    const recBadge = isNewRec
+      ? `<span class="prac-stat-record">🏅 שיא חדש!</span>`
+      : s.rec ? `<span class="prac-stat-record">שיא: ${s.rec}</span>` : '';
+    return `<div class="prac-stat-pill${isNewRec ? ' record-new' : ''}" style="--si:${i}">
        <span class="prac-stat-val">${s.val}</span>
        <span class="prac-stat-lbl">${s.lbl}</span>
-     </div>`
-  ).join('');
+       ${recBadge}
+     </div>`;
+  }).join('');
 
-  // bar chart (only if more than 1 key; filtered to keys with mistakes only)
   const km = prac.keyMistakes || [];
   const keysWithMistakes = keys.map((kd, i) => ({ kd, m: km[i] || 0 })).filter(x => x.m > 0);
   const hasChart = keys.length > 1 && keysWithMistakes.length > 0;
@@ -2825,7 +3218,7 @@ function showDone(partial) {
     const maxM = Math.max(...keysWithMistakes.map(x => x.m), 1);
     pracDoneChart.innerHTML = keysWithMistakes.map(({ kd, m }, i) => {
       const pct = Math.round((m / maxM) * 100);
-      const lbl = kd.key;
+      const lbl = kd.key + (kd.pracMode === 'minor' ? 'm' : '');
       return `<div class="chart-col" style="--ci:${i}">
         <div class="chart-bar-wrap">
           <div class="chart-bar" style="height:${Math.max(3, pct * 0.6)}px"></div>
@@ -2835,12 +3228,45 @@ function showDone(partial) {
     }).join('');
   }
 
-  // Show challenge button only for full 'all' scope sessions (not single key, not challenge, not partial)
   const showChallenge = !partial && prac.scope !== 'single' && prac.phase !== 'challenge';
   pracChallengeBtn.style.display = showChallenge ? '' : 'none';
+  pracBatchDone.classList.remove('show');
+  clearPracState();
 
   pracDoneScreen.classList.add('show');
   pracStreak.style.display = 'none';
+}
+
+function showBatchDone() {
+  // Pause timer while user decides
+  prac.pauseStartTime = Date.now();
+
+  const remaining = prac.sessionPoolRemaining.length;
+  pracBatchTitle.textContent = '✅ הbatch הושלם!';
+  pracBatchSub.textContent   = `נותרו ${remaining} סולמות לא מתורגלים. כמה תרצה לתרגל?`;
+  pracBatchCountRow.style.display = '';
+  const maxNext = Math.min(remaining, 13);
+  pracBatchNextCount.max   = maxNext;
+  pracBatchNextCount.value = Math.min(3, maxNext);
+  pracBatchContinueBtn.style.display = '';
+  pracBatchDone.classList.add('show');
+  pracTopbar.style.display = 'none';
+  pracMain.style.display   = 'none';
+  clearVelPanel(); stopVelPrune();
+  savePracState();
+}
+
+function showAllDone() {
+  // All keys practiced — auto-advance to stats after 4 seconds
+  pracBatchTitle.textContent = '🎉 סיימת את כל הסולמות!';
+  pracBatchSub.textContent   = 'מעביר אותך לסטטיסטיקות...';
+  pracBatchCountRow.style.display    = 'none';
+  pracBatchContinueBtn.style.display = 'none';
+  pracBatchDone.classList.add('show');
+  pracTopbar.style.display = 'none';
+  pracMain.style.display   = 'none';
+  clearVelPanel(); stopVelPrune();
+  setTimeout(() => { pracBatchDone.classList.remove('show'); showDone(); }, 4000);
 }
 
 pracRestartBtn.addEventListener('click', () => {
@@ -2850,18 +3276,68 @@ pracRestartBtn.addEventListener('click', () => {
   startPractice();
 });
 
+// ── Batch done buttons ──
+pracBatchContinueBtn.addEventListener('click', () => {
+  const n = Math.min(parseInt(pracBatchNextCount.value) || 1, prac.sessionPoolRemaining.length);
+  // Un-pause timer
+  if (prac.pauseStartTime) { prac.pausedMs += Date.now() - prac.pauseStartTime; prac.pauseStartTime = null; }
+  // Pick next batch from pool
+  const nextBatch = prac.sessionPoolRemaining.splice(0, n);
+  prac.pracKeySeq = nextBatch;
+  prac.keyIdx     = 0;
+  prac.keyMistakes = new Array(nextBatch.length).fill(0);
+  prac.chordAttempts = {};
+  prac.streak = 0;
+
+  const modeStr = prac.practiceMode === 'both' ? 'Major+Minor' : prac.practiceMode === 'major' ? 'Major' : 'Minor';
+  const typeStr = prac.activeCtype === 'triads' ? 'Triads' : '7th Chords';
+  pracModeBadge.textContent = `${modeStr} · ${typeStr} · ${nextBatch.length} סולמות`;
+
+  pracBatchDone.classList.remove('show');
+  pracTopbar.style.display = 'flex';
+  pracMain.style.display   = 'flex';
+  startVelPrune();
+  startKey(0);
+});
+
+pracBatchFinishBtn.addEventListener('click', () => {
+  if (prac.pauseStartTime) { prac.pausedMs += Date.now() - prac.pauseStartTime; prac.pauseStartTime = null; }
+  pracBatchDone.classList.remove('show');
+  showDone();
+});
+
+// ── Resume prompt buttons ──
+pracResumeYesBtn.addEventListener('click', () => {
+  const state = loadPracState();
+  if (!state) { pracResumePrompt.classList.remove('show'); return; }
+  pracResumePrompt.classList.remove('show');
+  if (prac.midiAccess) attachMidiListeners();
+  startPractice(state);
+});
+
+pracResumeNoBtn.addEventListener('click', () => {
+  clearPracState();
+  pracResumePrompt.classList.remove('show');
+  // Show settings screen fresh
+  syncSettingsUI();
+});
+
 pracExitBtn.addEventListener('click', () => {
   if (prac.phase === 'stats') {
-    // Second click: close overlay and return to main
     prac.phase = 'idle';
     practiceOverlay.style.display = 'none';
     return;
   }
-  // First click while practicing or challenge: stop and show stats
   clearHintTimer();
+  clearTimeout(prac.nameRevealTimer);
+  prac.nameRevealTimer = null;
   clearTimeout(prac.resetTimer);
   prac.resetTimer = null;
   prac.locked = true;
+  if (prac.pauseStartTime) {
+    prac.pausedMs += Date.now() - prac.pauseStartTime;
+    prac.pauseStartTime = null;
+  }
   prac.paused = false;
   pracPauseBtn.textContent = '⏸ השהייה';
   pracPauseBtn.classList.remove('paused');
@@ -2874,6 +3350,7 @@ pracExitBtn.addEventListener('click', () => {
   clearVelPanel();
   pracTopbar.style.display = 'none';
   pracMain.style.display   = 'none';
+  pracBatchDone.classList.remove('show');
   prac.phase = 'stats';
   showDone(true);
 });
@@ -2883,36 +3360,25 @@ pracExitBtn.addEventListener('click', () => {
 // ════════════════════════════════════════════════════════════════
 
 function startChallengeMode() {
-  // Pick top 5 chord types by mistake count (random tiebreaker)
-  const entries = Object.entries(prac.chordTypeMistakes);
-  if (entries.length === 0) return;
+  const allResults = Object.values(prac.chordResults);
+  if (allResults.length === 0) return;
 
-  // Sort by mistakes desc, random tiebreaker
-  entries.sort((a, b) => b[1] - a[1] || Math.random() - 0.5);
-  const top5degrees = entries.slice(0, 5).map(e => e[0]);
+  // Separate wrong and correct, shuffle each
+  const wrongEntries   = shuffleArray(allResults.filter(r => r.wrong));
+  const correctEntries = shuffleArray(allResults.filter(r => !r.wrong));
 
-  // For each degree, find a concrete chord from DATA (any key)
-  const allKeys = DATA[currentCtype][currentMode];
-  prac.challengeTypes = top5degrees.map(deg => {
-    // Collect all chords with this degree across all keys
-    const candidates = [];
-    allKeys.forEach(kd => {
-      const ch = kd.chords.find(c => c.degree === deg);
-      if (ch) candidates.push({ ...ch, keyLabel: kd.key });
-    });
-    // Pick randomly among candidates
-    return candidates[Math.floor(Math.random() * candidates.length)];
-  }).filter(Boolean);
+  // Take top 5: wrong first, fill with correct
+  const selected = [...wrongEntries, ...correctEntries].slice(0, 5);
+  if (selected.length === 0) return;
 
-  if (prac.challengeTypes.length === 0) return;
+  prac.challengeTypes = selected.map(r => ({ ...r.chord, keyLabel: r.keyLabel }));
 
-  prac.phase          = 'challenge';
-  prac.challengeRound = 0;
+  prac.phase              = 'challenge';
+  prac.challengeRound     = 0;
   prac.challengeStartTime = Date.now();
   prac.challengeMistakes  = 0;
   prac.challengeCorrect   = 0;
   prac.challengeTime      = 0;
-  prac.chordTypeMistakes  = {};  // reset for fresh tracking during challenge
 
   pracDoneScreen.classList.remove('show');
   pracMidiScreen.style.display = 'none';
@@ -2956,9 +3422,10 @@ function renderChallengeSeq() {
       isDone ? 'done' : '',
       isCurrent ? 'current' : ''
     ].filter(Boolean).join(' ');
+    const nameLabel = isDone ? shortName(ch.name) : '?';
     return `<div class="${classes}">
-      <span class="chip-degree">${ch.degree}</span>
-      <span class="chip-name" dir="ltr">${shortName(ch.name)}</span>
+      <span class="chip-degree" dir="ltr">${ch.keyLabel}·${ch.degree}</span>
+      <span class="chip-name" dir="ltr">${nameLabel}</span>
     </div>`;
   }).join('');
 }
