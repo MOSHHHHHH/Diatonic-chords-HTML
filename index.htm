@@ -825,7 +825,12 @@
     text-align: center; overflow-y: auto;
   }
 
-  /* ── chord name hidden state ── */
+  .prac-chord-sub {
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem; font-weight: 700; letter-spacing: 0.06em;
+    color: var(--text-dim); text-align: center;
+    animation: chipNameReveal 0.38s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
   .prac-chord-big.name-hidden {
     font-size: clamp(2rem, 5vw, 4rem);
     opacity: 0.55;
@@ -1197,7 +1202,52 @@
     to   { transform: scaleY(1); opacity: 1; }
   }
 
-  /* ── batch-done (continue/finish) screen ── */
+  /* ── tonic practice phase ── */
+  .prac-tonic-phase {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 0.7rem; text-align: center; width: 100%;
+  }
+  .prac-tonic-display {
+    display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+  }
+  .prac-tonic-acc {
+    font-family: 'Courier New', monospace;
+    font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 700;
+    color: var(--prac-key-col, var(--lime)); line-height: 1;
+  }
+  .prac-tonic-quality {
+    font-size: 0.8rem; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-sub);
+  }
+  .prac-tonic-status {
+    font-size: 0.88rem; font-weight: 600; color: var(--text-sub); min-height: 1.4rem;
+  }
+  .prac-tonic-status.ok  { color: var(--lime); }
+  .prac-tonic-status.err { color: var(--orange); }
+
+  /* ── full mode settings ── */
+  .prac-full-counts {
+    display: flex; gap: 1.2rem; align-items: center; flex-wrap: wrap; justify-content: center;
+  }
+  .prac-full-count-label {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-size: 0.7rem; color: var(--text-sub);
+  }
+  .prac-full-count-input {
+    width: 3rem; padding: 0.28rem 0.35rem;
+    background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px;
+    color: var(--text); font-family: 'Courier New', monospace;
+    font-size: 0.85rem; font-weight: 700; text-align: center;
+    transition: border-color var(--tr);
+  }
+  .prac-full-count-input:focus { outline: none; border-color: var(--cyan); }
+
+  /* ── full mode progress ── */
+  .prac-full-progress {
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-dim);
+    text-align: center;
+  }
   .prac-batch-done {
     position: absolute; inset: 0; z-index: 6;
     display: none; flex-direction: column; align-items: center; justify-content: center;
@@ -1308,6 +1358,7 @@
         <button class="prac-opt-btn" data-pmode="major">Major</button>
         <button class="prac-opt-btn" data-pmode="minor">Minor</button>
         <button class="prac-opt-btn" data-pmode="both">Major + Minor</button>
+        <button class="prac-opt-btn" data-pmode="full">תרגול מלא</button>
       </div>
     </div>
 
@@ -1369,6 +1420,21 @@
       </div>
     </div>
 
+    <!-- full practice mode settings (n3, n4) -->
+    <div class="prac-opt-group" id="pracFullModeGroup" style="display:none">
+      <div class="prac-opt-label">חזרות בתרגול מלא</div>
+      <div class="prac-full-counts">
+        <label class="prac-full-count-label">
+          🔺 משולשים:
+          <input type="number" id="pracFullN3Input" class="prac-full-count-input" min="1" max="10" value="2">
+        </label>
+        <label class="prac-full-count-label">
+          🔷 מרובעים:
+          <input type="number" id="pracFullN4Input" class="prac-full-count-input" min="1" max="10" value="2">
+        </label>
+      </div>
+    </div>
+
     <!-- chord name / notes timing -->
     <div class="prac-opt-group" id="pracTimingGroup" style="display:none">
       <div class="prac-opt-label">עיכוב רמזים (שניות)</div>
@@ -1414,6 +1480,17 @@
     <div class="prac-key-label" id="pracKeyLabel">
       סולם: <em id="pracKeyName" dir="ltr"></em>
     </div>
+    <div class="prac-full-progress" id="pracFullProgress" style="display:none"></div>
+
+    <!-- tonic identification phase -->
+    <div class="prac-tonic-phase" id="pracTonicPhase" style="display:none">
+      <div class="prac-tonic-display">
+        <div class="prac-tonic-acc" id="pracTonicAcc"></div>
+        <div class="prac-tonic-quality" id="pracTonicQuality"></div>
+      </div>
+      <div class="prac-tonic-status" id="pracTonicStatus">נגן את תו הטוניקה</div>
+      <div class="prac-instructions">נגן את תו הטוניקה (I) של הסולם · כל אוקטבה · תשובה שגויה = ניסוי נוסף</div>
+    </div>
 
     <!-- scale practice phase (shown before chords on each new key) -->
     <div class="prac-scale-phase" id="pracScalePhase" style="display:none">
@@ -1430,6 +1507,7 @@
       <div class="prac-seq" id="pracSeq"></div>
 
       <div class="prac-chord-big" id="pracChordBig" data-text="" dir="ltr"></div>
+      <div class="prac-chord-sub" id="pracChordSub" dir="ltr" style="display:none"></div>
 
       <div class="prac-streak" id="pracStreak" style="display:none"></div>
 
@@ -1630,7 +1708,16 @@ const KEY_ORDER_SEQS = {
   }
 };
 
-// ── Accidentals count per key ──
+// ── Parallel minor keys (for full practice mode) ──
+const PARALLEL_MINOR = {
+  'C':'Am','G':'Em','D':'Bm','A':'F#m','E':'C#m','B':'G#m',
+  'F#':'D#m','Gb':'Ebm','Db':'Bbm','Ab':'Fm','Eb':'Cm','Bb':'Gm','F':'Dm'
+};
+// D#m not in DATA — use Ebm enharmonic
+const PARALLEL_MINOR_KEY = {
+  'C':'Am','G':'Em','D':'Bm','A':'F#m','E':'C#m','B':'G#m',
+  'F#':'Ebm','Gb':'Ebm','Db':'Bbm','Ab':'Fm','Eb':'Cm','Bb':'Gm','F':'Dm'
+};
 const KEY_ACCIDENTALS = {
   C:0, G:'1♯', D:'2♯', A:'3♯', E:'4♯', B:'5♯', 'F#':'6♯',
   Gb:'6♭', Db:'5♭', Ab:'4♭', Eb:'3♭', Bb:'2♭', F:'1♭',
@@ -1842,6 +1929,7 @@ const pracNotesHideInput = document.getElementById('pracNotesHideInput');
 const pracScaleOptGroup  = document.getElementById('pracScaleOptGroup');
 const pracTimingGroup    = document.getElementById('pracTimingGroup');
 const pracChordInstructions = document.getElementById('pracChordInstructions');
+const pracChordSub          = document.getElementById('pracChordSub');
 // new: mode/ctype/batch/resume
 const pracModeGroup      = document.getElementById('pracModeGroup');
 const pracModeBtns       = document.getElementById('pracModeBtns');
@@ -1862,6 +1950,16 @@ const pracResumePrompt   = document.getElementById('pracResumePrompt');
 const pracResumeSub      = document.getElementById('pracResumeSub');
 const pracResumeYesBtn   = document.getElementById('pracResumeYesBtn');
 const pracResumeNoBtn    = document.getElementById('pracResumeNoBtn');
+// tonic phase
+const pracTonicPhase     = document.getElementById('pracTonicPhase');
+const pracTonicAcc       = document.getElementById('pracTonicAcc');
+const pracTonicQuality   = document.getElementById('pracTonicQuality');
+const pracTonicStatus    = document.getElementById('pracTonicStatus');
+// full mode
+const pracFullModeGroup  = document.getElementById('pracFullModeGroup');
+const pracFullN3Input    = document.getElementById('pracFullN3Input');
+const pracFullN4Input    = document.getElementById('pracFullN4Input');
+const pracFullProgress   = document.getElementById('pracFullProgress');
 
 
 function exitPracticeIfOpen() {
@@ -1997,6 +2095,14 @@ const prac = {
   challengeStartTime: null,
   midiJustApproved: false,
   streak: 0,
+  // full practice mode
+  fullN3: 2,            // repetitions for triads per key
+  fullN4: 2,            // repetitions for sevenths per key
+  fullStepTotal: 0,     // total steps in full session
+  fullStepCurrent: 0,   // current step index (0-based)
+  // tonic phase
+  tonicPC: -1,          // expected tonic pitch class for current key
+  showDegreeFirst: true, // randomised each chord
 };
 
 // ════════════════════════════════════════════
@@ -2158,29 +2264,32 @@ function buildKeyPickerGrid() {
 
 function syncSettingsUI() {
   const isBoth   = prac.practiceMode === 'both';
-  const isSingle = prac.scope === 'single';
-  const isBatch  = prac.scope === 'batch';
+  const isFull   = prac.practiceMode === 'full';
+  const isSingle = prac.scope === 'single' && !isBoth && !isFull;
+  const isBatch  = prac.scope === 'batch'  && !isBoth && !isFull;
 
   // Mode buttons
   pracModeBtns.querySelectorAll('.prac-opt-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.pmode === prac.practiceMode));
 
-  // Ctype buttons
+  // Ctype buttons — hidden in full mode
+  pracCtypeGroup.style.display = isFull ? 'none' : 'flex';
   pracCtypeBtns.querySelectorAll('.prac-opt-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.pctype === prac.activeCtype));
 
-  // Scope buttons — no single in 'both' mode
-  scopeSingleBtn.style.display = isBoth ? 'none' : '';
-  scopeAllBtn.classList.toggle('active', prac.scope === 'all');
-  scopeBatchBtn.classList.toggle('active', isBatch);
-  scopeSingleBtn.classList.toggle('active', isSingle);
+  // Scope row — hidden in full/both
+  pracScopeRow.style.display = (isFull || isBoth) ? 'none' : 'flex';
+  if (!isFull && !isBoth) {
+    scopeSingleBtn.style.display = '';
+    scopeAllBtn.classList.toggle('active', prac.scope === 'all');
+    scopeBatchBtn.classList.toggle('active', isBatch);
+    scopeSingleBtn.classList.toggle('active', isSingle);
+  }
 
   // Key count group
   pracKeyCountGroup.style.display = isBatch ? 'flex' : 'none';
   if (isBatch) {
-    const maxKeys = isBoth
-      ? DATA[prac.activeCtype]['major'].length + DATA[prac.activeCtype]['minor'].length
-      : (DATA[prac.activeCtype][prac.practiceMode]?.length || 13);
+    const maxKeys = DATA[prac.activeCtype][prac.practiceMode]?.length || 13;
     pracKeyCountInput.max   = maxKeys;
     pracKeyCountInput.value = Math.min(prac.keyCount, maxKeys);
     pracKeyCountHint.textContent = `מתוך ${maxKeys}`;
@@ -2190,20 +2299,28 @@ function syncSettingsUI() {
   pracKeyPicker.style.display = isSingle ? '' : 'none';
   if (isSingle) buildKeyPickerGrid();
 
-  // Key order — hidden in both/batch/single
-  pracKeyOrderGroup.style.display   = (!isBoth && !isSingle && !isBatch) ? 'flex' : 'none';
-  pracChordOrderGroup.style.display = 'flex';
-  pracScaleOptGroup.style.display   = 'flex';
-  pracTimingGroup.style.display     = 'flex';
+  // Key order — only for single-mode all-scope, not full/both/single/batch
+  pracKeyOrderGroup.style.display = (!isFull && !isBoth && !isSingle && !isBatch) ? 'flex' : 'none';
 
-  // In 'both' mode, force random order
-  if (isBoth) prac.keyOrder = 'random';
+  // Chord order — hidden in full mode
+  pracChordOrderGroup.style.display = isFull ? 'none' : 'flex';
+
+  // Scale / timing — always shown
+  pracScaleOptGroup.style.display = 'flex';
+  pracTimingGroup.style.display   = 'flex';
+
+  // Full mode settings
+  pracFullModeGroup.style.display = isFull ? 'flex' : 'none';
+
+  if (isBoth || isFull) prac.keyOrder = 'random';
   syncOrderBtns();
 
   pracScaleToggleBtn.textContent = prac.scalePracticeEnabled ? '✓ מופעל' : '○ כבוי';
   pracScaleToggleBtn.classList.toggle('active', prac.scalePracticeEnabled);
   pracNameHideInput.value  = prac.nameHideDelay;
   pracNotesHideInput.value = prac.notesHideDelay;
+  if (pracFullN3Input) pracFullN3Input.value = prac.fullN3;
+  if (pracFullN4Input) pracFullN4Input.value = prac.fullN4;
 }
 
 openPracticeBtn.addEventListener('click', () => {
@@ -2291,7 +2408,7 @@ pracPauseBtn.addEventListener('click', () => {
       pracScaleStatus.textContent = 'נגן את כל תווי הסולם';
       pracScaleStatus.className   = 'prac-scale-status';
     } else if (!prac.nameRevealed && prac.nameRevealRemainingMs !== null) {
-      prac.nameRevealTimer = setTimeout(revealChordName, prac.nameRevealRemainingMs);
+      prac.nameRevealTimer = setTimeout(revealChordSecondPart, prac.nameRevealRemainingMs);
       prac.nameRevealRemainingMs = null;
       setStatus('נחש את שם האקורד', '');
     } else {
@@ -2314,8 +2431,10 @@ pracModeBtns.addEventListener('click', e => {
   const btn = e.target.closest('.prac-opt-btn');
   if (!btn) return;
   prac.practiceMode = btn.dataset.pmode;
-  if (prac.practiceMode === 'both') { prac.scope = 'all'; prac.keyOrder = 'random'; }
-  prac.activeMode = prac.practiceMode === 'both' ? 'major' : prac.practiceMode;
+  if (prac.practiceMode === 'both' || prac.practiceMode === 'full') {
+    prac.scope = 'all'; prac.keyOrder = 'random';
+  }
+  prac.activeMode = (['both','full'].includes(prac.practiceMode)) ? 'major' : prac.practiceMode;
   syncSettingsUI(); saveSettings();
 });
 
@@ -2338,6 +2457,17 @@ pracKeyCountInput.addEventListener('change', () => {
   saveSettings();
 });
 
+pracFullN3Input.addEventListener('change', () => {
+  prac.fullN3 = Math.max(1, parseInt(pracFullN3Input.value) || 1);
+  pracFullN3Input.value = prac.fullN3;
+  saveSettings();
+});
+pracFullN4Input.addEventListener('change', () => {
+  prac.fullN4 = Math.max(1, parseInt(pracFullN4Input.value) || 1);
+  pracFullN4Input.value = prac.fullN4;
+  saveSettings();
+});
+
 // ════════════════════════════════════════════
 //  SETTINGS PERSISTENCE (localStorage)
 // ════════════════════════════════════════════
@@ -2355,6 +2485,8 @@ function saveSettings() {
       activeCtype:          prac.activeCtype,
       scope:                prac.scope,
       keyCount:             prac.keyCount,
+      fullN3:               prac.fullN3,
+      fullN4:               prac.fullN4,
     }));
   } catch(e) {}
 }
@@ -2371,7 +2503,9 @@ function loadSettings() {
     if (s.activeCtype)   prac.activeCtype  = s.activeCtype;
     if (s.scope)         prac.scope        = s.scope;
     if (s.keyCount)      prac.keyCount     = s.keyCount;
-    prac.activeMode = prac.practiceMode === 'both' ? 'major' : prac.practiceMode;
+    if (s.fullN3)        prac.fullN3       = s.fullN3;
+    if (s.fullN4)        prac.fullN4       = s.fullN4;
+    prac.activeMode = (['both','full'].includes(prac.practiceMode)) ? 'major' : prac.practiceMode;
   } catch(e) {}
 }
 
@@ -2484,7 +2618,9 @@ function handleMidi(event) {
     prac.held.add(note);
     velNoteOn(note, velocity);
     if (!prac.locked) {
-      if (prac.phase === 'scale_practice') {
+      if (prac.phase === 'tonic_practice') {
+        handleTonicNote(note);
+      } else if (prac.phase === 'scale_practice') {
         handleScaleNote(note);
       } else {
         prac.playedPCs.add(note % 12);
@@ -2496,6 +2632,80 @@ function handleMidi(event) {
     prac.notesAtStart.delete(note);
     velNoteOff(note);
   }
+}
+
+// ════════════════════════════════════════════
+//  TONIC PRACTICE
+// ════════════════════════════════════════════
+
+function startTonicPractice(kd) {
+  prac.phase = 'tonic_practice';
+  prac.locked = false;
+  prac.notesAtStart = new Set(prac.held);
+
+  prac.tonicPC = noteNameToPC(kd.chords[0].notes[0]);
+
+  const acc = KEY_ACCIDENTALS[kd.key];
+  pracTonicAcc.textContent = (acc === 0 || acc === undefined) ? '0' : `${acc}`;
+  pracTonicQuality.textContent = prac.activeMode === 'major' ? 'Major' : 'Minor';
+  pracTonicStatus.textContent = 'נגן את תו הטוניקה';
+  pracTonicStatus.className = 'prac-tonic-status';
+
+  // Hide key name — only show accidentals + quality
+  pracKeyLabel.style.visibility = 'hidden';
+
+  pracTonicPhase.style.display = '';
+  pracScalePhase.style.display = 'none';
+  pracChordPhase.style.display = 'none';
+  practiceOverlay.classList.remove('prac-wrong', 'prac-correct');
+}
+
+function handleTonicNote(midiNote) {
+  if (prac.notesAtStart.has(midiNote)) return;
+  const pc = midiNote % 12;
+  if (pc === prac.tonicPC) {
+    onTonicCorrect();
+  } else {
+    onTonicWrong();
+  }
+}
+
+function onTonicCorrect() {
+  prac.locked = true;
+  practiceOverlay.classList.add('prac-correct');
+  pracTonicStatus.textContent = '✓ נכון!';
+  pracTonicStatus.className = 'prac-tonic-status ok';
+  // Restore key name before moving on
+  pracKeyLabel.style.visibility = '';
+  prac.resetTimer = setTimeout(() => {
+    practiceOverlay.classList.remove('prac-correct');
+    pracTonicPhase.style.display = 'none';
+    if (prac.scalePracticeEnabled) {
+      startScalePractice(getPracKeyData());
+    } else {
+      pracChordPhase.style.display = '';
+      prac.phase = 'practicing';
+      prac.chordIdx = 0;
+      prac.held.clear(); prac.notesAtStart.clear();
+      prac.playedPCs.clear(); prac.prevChordPCs.clear();
+      renderSeq(); showCurrentChord();
+    }
+  }, 600);
+}
+
+function onTonicWrong() {
+  prac.locked = true;
+  practiceOverlay.classList.add('prac-wrong');
+  pracTonicStatus.textContent = '✗ לא נכון — נסה שוב';
+  pracTonicStatus.className = 'prac-tonic-status err';
+  prac.resetTimer = setTimeout(() => {
+    prac.held.clear();
+    prac.notesAtStart = new Set();
+    prac.locked = false;
+    practiceOverlay.classList.remove('prac-wrong');
+    pracTonicStatus.textContent = 'נגן את תו הטוניקה';
+    pracTonicStatus.className = 'prac-tonic-status';
+  }, 800);
 }
 
 // ════════════════════════════════════════════
@@ -2613,6 +2823,7 @@ function onScaleComplete() {
   pracScaleStatus.className = 'prac-scale-status ok';
   prac.resetTimer = setTimeout(() => {
     practiceOverlay.classList.remove('prac-correct');
+    pracTonicPhase.style.display = 'none';
     pracScalePhase.style.display = 'none';
     pracChordPhase.style.display = '';
     prac.phase = 'practicing';
@@ -2630,15 +2841,32 @@ function onScaleComplete() {
 //  CHORD NAME HIDING
 // ════════════════════════════════════════════
 
-function revealChordName() {
+function revealChordSecondPart() {
   prac.nameRevealTimer = null;
   if (prac.phase !== 'practicing') return;
   const target = getCurrentTarget();
-  const display = shortName(target.name);
-  pracChordBig.textContent = display;
-  pracChordBig.setAttribute('data-text', display);
-  pracChordBig.classList.remove('name-hidden', 'anim-in');
-  requestAnimationFrame(() => requestAnimationFrame(() => pracChordBig.classList.add('anim-in')));
+  const name   = shortName(target.name);
+  const degree = target.degree;
+
+  if (prac.showDegreeFirst) {
+    // Was showing degree → now reveal name in big, show degree in sub
+    pracChordBig.textContent = name;
+    pracChordBig.setAttribute('data-text', name);
+    pracChordBig.classList.remove('name-hidden', 'anim-in');
+    requestAnimationFrame(() => requestAnimationFrame(() => pracChordBig.classList.add('anim-in')));
+    pracChordSub.textContent = degree;
+  } else {
+    // Was showing name → now reveal degree in sub
+    pracChordSub.textContent = degree;
+  }
+  // Reveal sub with animation
+  pracChordSub.style.animation = 'none';
+  pracChordSub.style.display = '';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    pracChordSub.style.animation = '';
+  }));
+
+  setStatus('נגן את האקורד המסומן', '');
   prac.nameRevealed = true;
   startHintTimer();
 }
@@ -2795,7 +3023,6 @@ function startPractice(resumeState) {
   prac.activeCtype = prac.activeCtype; // set from settings
 
   if (resumeState) {
-    // Restore from saved state
     prac.activeCtype  = resumeState.activeCtype;
     prac.practiceMode = resumeState.practiceMode;
     prac.scope        = resumeState.scope;
@@ -2809,24 +3036,44 @@ function startPractice(resumeState) {
     prac.keyMistakes  = resumeState.keyMistakes || [];
     prac.totalChordTime    = resumeState.totalChordTime || 0;
     prac.totalChordsPlayed = resumeState.totalChordsPlayed || 0;
-    // Adjust startTime to account for pause
     const pausedAlready = resumeState.pausedMs || 0;
     prac.startTime = Date.now() - (resumeState.savedAt - resumeState.startTime) - pausedAlready;
     prac.pausedMs  = 0;
     prac.keyIdx    = resumeState.keyIdx;
-    // Update activeMode from first key in sequence
+    prac.fullStepTotal   = resumeState.fullStepTotal   || 0;
+    prac.fullStepCurrent = resumeState.fullStepCurrent || 0;
     const kd = prac.pracKeySeq[prac.keyIdx];
-    prac.activeMode = kd ? (kd.pracMode || prac.practiceMode) : prac.practiceMode;
+    prac.activeMode  = kd ? (kd.pracMode   || prac.practiceMode) : prac.practiceMode;
+    if (kd && kd.stepCtype) prac.activeCtype = kd.stepCtype;
   } else {
-    // Fresh start — build key sequence
-    prac.activeMode = (prac.practiceMode === 'both') ? 'major' : prac.practiceMode;
-    const majorAll = DATA[prac.activeCtype]['major'];
-    const minorAll = DATA[prac.activeCtype]['minor'];
+    prac.activeMode = (['both','full'].includes(prac.practiceMode)) ? 'major' : prac.practiceMode;
 
-    if (prac.practiceMode === 'both') {
-      // Tag each key with its mode
-      const taggedMajor = majorAll.map(kd => ({ ...kd, pracMode: 'major' }));
-      const taggedMinor = minorAll.map(kd => ({ ...kd, pracMode: 'minor' }));
+    if (prac.practiceMode === 'full') {
+      // Build full sequence; 50% ascending CoF, 50% descending
+      const useInverse = Math.random() < 0.5;
+      const cofKeys = useInverse
+        ? KEY_ORDER_SEQS.circle_of_fifths_inverse.major
+        : KEY_ORDER_SEQS.circle_of_fifths.major;
+      const steps = [];
+      for (const majorKeyName of cofKeys) {
+        const mT = DATA['triads']['major'].find(k => k.key === majorKeyName);
+        const mS = DATA['sevenths']['major'].find(k => k.key === majorKeyName);
+        const minorKeyName = PARALLEL_MINOR_KEY[majorKeyName];
+        const nT = DATA['triads']['minor'].find(k => k.key === minorKeyName);
+        const nS = DATA['sevenths']['minor'].find(k => k.key === minorKeyName);
+        if (!mT || !nT) continue;
+        for (let i = 0; i < prac.fullN3; i++) steps.push({ ...mT, stepCtype:'triads',   pracMode:'major' });
+        for (let i = 0; i < prac.fullN4; i++) steps.push({ ...mS, stepCtype:'sevenths', pracMode:'major' });
+        for (let i = 0; i < prac.fullN3; i++) steps.push({ ...nT, stepCtype:'triads',   pracMode:'minor' });
+        for (let i = 0; i < prac.fullN4; i++) steps.push({ ...nS, stepCtype:'sevenths', pracMode:'minor' });
+      }
+      prac.pracKeySeq = steps;
+      prac.sessionPoolRemaining = [];
+      prac.fullStepTotal   = steps.length;
+      prac.fullStepCurrent = 0;
+    } else if (prac.practiceMode === 'both') {
+      const taggedMajor = DATA[prac.activeCtype]['major'].map(kd => ({ ...kd, pracMode:'major', stepCtype: prac.activeCtype }));
+      const taggedMinor = DATA[prac.activeCtype]['minor'].map(kd => ({ ...kd, pracMode:'minor', stepCtype: prac.activeCtype }));
       const combined = shuffleArray([...taggedMajor, ...taggedMinor]);
       if (prac.scope === 'batch') {
         prac.sessionPoolRemaining = [...combined];
@@ -2835,8 +3082,9 @@ function startPractice(resumeState) {
         prac.sessionPoolRemaining = [];
         prac.pracKeySeq = combined;
       }
+      prac.fullStepTotal = 0; prac.fullStepCurrent = 0;
     } else {
-      const all = DATA[prac.activeCtype][prac.practiceMode].map(kd => ({ ...kd, pracMode: prac.practiceMode }));
+      const all = DATA[prac.activeCtype][prac.practiceMode].map(kd => ({ ...kd, pracMode: prac.practiceMode, stepCtype: prac.activeCtype }));
       if (prac.scope === 'single') {
         prac.pracKeySeq = [all[prac.singleKeyIdx]];
         prac.sessionPoolRemaining = [];
@@ -2856,6 +3104,7 @@ function startPractice(resumeState) {
         prac.pracKeySeq = [...all];
         prac.sessionPoolRemaining = [];
       }
+      prac.fullStepTotal = 0; prac.fullStepCurrent = 0;
     }
 
     prac.keyMistakes = new Array(prac.pracKeySeq.length).fill(0);
@@ -2897,8 +3146,8 @@ function startKey(ki) {
     prac.nameRevealTimer = null;
 
     const kd = getPracKeyData();
-    // In 'both' mode, each key carries its own pracMode
-    prac.activeMode = kd.pracMode || prac.practiceMode;
+    prac.activeMode  = kd.pracMode  || prac.practiceMode;
+    if (kd.stepCtype) prac.activeCtype = kd.stepCtype;
 
     if (prac.chordOrder === 'random_progression') {
       const pool = CHORD_PROGRESSIONS[prac.activeMode];
@@ -2910,28 +3159,39 @@ function startKey(ki) {
     const keys = getPracKeys();
     pracProgressTxt.textContent = `סולם ${ki + 1} מתוך ${keys.length}`;
 
-    const modeLabel = prac.activeMode === 'major' ? 'Major' : 'Minor';
+    const modeLabel  = prac.activeMode  === 'major' ? 'Major' : 'Minor';
+    const ctypeLabel = prac.activeCtype === 'triads' ? 'משולשים' : 'מרובעים';
     pracKeyName.textContent = kd.key + ' ' + modeLabel;
 
-    // Update overlay accent color per key mode
+    // Full mode: show step progress
+    if (prac.fullStepTotal > 0) {
+      prac.fullStepCurrent = ki;
+      pracFullProgress.textContent = `שלב ${ki + 1} / ${prac.fullStepTotal} · ${modeLabel} · ${ctypeLabel}`;
+      pracFullProgress.style.display = '';
+    } else {
+      pracFullProgress.style.display = 'none';
+    }
+
     practiceOverlay.style.setProperty('--prac-key-col',
       prac.activeMode === 'major' ? 'var(--pink)' : 'var(--cyan)');
 
     pracMain.classList.remove('prac-key-fade-out', 'prac-key-fade-in');
     requestAnimationFrame(() => requestAnimationFrame(() => pracMain.classList.add('prac-key-fade-in')));
 
-    if (prac.scalePracticeEnabled && prac.phase !== 'challenge') {
-      pracScalePhase.style.display = '';
+    // Always start with tonic phase (unless challenge)
+    if (prac.phase !== 'challenge') {
+      pracTonicPhase.style.display = '';
+      pracScalePhase.style.display = 'none';
       pracChordPhase.style.display = 'none';
-      startScalePractice(kd);
+      startTonicPractice(kd);
     } else {
+      pracTonicPhase.style.display = 'none';
       pracScalePhase.style.display = 'none';
       pracChordPhase.style.display = '';
       renderSeq();
       showCurrentChord();
     }
 
-    // Save state after entering a new key
     savePracState();
   };
 
@@ -2976,9 +3236,12 @@ function showCurrentChord() {
   prac.notesAtStart = new Set(prac.held);
 
   const target  = getCurrentTarget();
-  const display = shortName(target.name);
+  const name    = shortName(target.name);
+  const degree  = target.degree;
 
   pracChordBig.classList.remove('anim-in', 'name-hidden');
+  pracChordSub.style.display = 'none';
+  pracChordSub.style.animation = 'none';
   pracHint.classList.add('hidden');
   pracHint.innerHTML = '';
   pracHintBarWrap.classList.remove('visible');
@@ -2988,16 +3251,27 @@ function showCurrentChord() {
     ? prac.nameHideDelay * 1000 : 0;
 
   if (nameDelay > 0) {
-    // Show degree only; hide chord name
-    pracChordBig.textContent = target.degree;
-    pracChordBig.setAttribute('data-text', target.degree);
-    pracChordBig.classList.add('name-hidden');
+    // Roll randomly: show degree first OR name first
+    prac.showDegreeFirst = Math.random() < 0.5;
+
+    if (prac.showDegreeFirst) {
+      // Show degree → reveal name after delay
+      pracChordBig.textContent = degree;
+      pracChordBig.setAttribute('data-text', degree);
+      pracChordBig.classList.add('name-hidden');
+      setStatus('נחש את שם האקורד', '');
+    } else {
+      // Show name → reveal degree after delay
+      pracChordBig.textContent = name;
+      pracChordBig.setAttribute('data-text', name);
+      setStatus('נחש את דרגת האקורד', '');
+    }
     requestAnimationFrame(() => requestAnimationFrame(() => pracChordBig.classList.add('anim-in')));
-    setStatus('נחש את שם האקורד', '');
-    prac.nameRevealTimer = setTimeout(revealChordName, nameDelay);
+    prac.nameRevealTimer = setTimeout(revealChordSecondPart, nameDelay);
   } else {
-    pracChordBig.textContent = display;
-    pracChordBig.setAttribute('data-text', display);
+    // No delay — show name, degree appears in sub immediately
+    pracChordBig.textContent = name;
+    pracChordBig.setAttribute('data-text', name);
     requestAnimationFrame(() => requestAnimationFrame(() => pracChordBig.classList.add('anim-in')));
     setStatus('נגן את האקורד המסומן', '');
     prac.nameRevealed = true;
